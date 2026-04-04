@@ -23,8 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _screens = const [
     MenuScreen(),
-    OrdersScreen(),
     TablesScreen(),
+    OrdersScreen(),
   ];
 
   @override
@@ -55,35 +55,51 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = context.watch<AuthProvider>();
     final cart = context.watch<CartProvider>();
     final orders = context.watch<OrdersProvider>();
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ServePOS', style: TextStyle(fontWeight: FontWeight.w900)),
-        actions: [
-          // Cart button
-          if (cart.itemCount > 0)
-            badges.Badge(
-              position: badges.BadgePosition.topEnd(top: 0, end: 0),
-              badgeContent: Text('${cart.itemCount}', style: const TextStyle(color: Colors.white, fontSize: 10)),
-              child: IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(8),
               ),
+              child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 18),
             ),
-          if (cart.itemCount == 0)
-            IconButton(
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('ServePOS', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                Text(auth.waiterName, style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          // Cart button with badge
+          badges.Badge(
+            showBadge: cart.itemCount > 0,
+            position: badges.BadgePosition.topEnd(top: 2, end: 2),
+            badgeContent: Text('${cart.itemCount}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+            badgeStyle: badges.BadgeStyle(badgeColor: theme.colorScheme.error),
+            child: IconButton(
               icon: const Icon(Icons.shopping_cart_outlined),
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
             ),
+          ),
 
           // Profile menu
           PopupMenuButton<String>(
             icon: CircleAvatar(
               radius: 16,
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              backgroundColor: theme.colorScheme.primaryContainer,
               child: Text(
                 auth.waiterName.isNotEmpty ? auth.waiterName[0].toUpperCase() : '?',
-                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+                style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ),
             onSelected: (value) {
@@ -98,13 +114,14 @@ class _HomeScreenState extends State<HomeScreen> {
               PopupMenuItem(
                 enabled: false,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(auth.waiterName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                  Text('Waiter', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  Text(auth.waiterName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text('Waiter', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                 ]),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(value: 'refresh', child: Row(children: [Icon(Icons.refresh, size: 18), SizedBox(width: 8), Text('Refresh Data')])),
-              const PopupMenuItem(value: 'logout', child: Row(children: [Icon(Icons.logout, size: 18, color: Colors.red), SizedBox(width: 8), Text('Logout', style: TextStyle(color: Colors.red))])),
+              const PopupMenuItem(value: 'refresh', child: Row(children: [Icon(Icons.refresh, size: 18), SizedBox(width: 10), Text('Refresh Menu')])),
+              const PopupMenuItem(value: 'logout', child: Row(children: [Icon(Icons.logout, size: 18, color: Colors.red), SizedBox(width: 10), Text('Logout', style: TextStyle(color: Colors.red))])),
             ],
           ),
         ],
@@ -113,25 +130,39 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        height: 65,
         destinations: [
-          const NavigationDestination(icon: Icon(Icons.restaurant_menu), label: 'Menu'),
+          const NavigationDestination(icon: Icon(Icons.restaurant_menu_outlined), selectedIcon: Icon(Icons.restaurant_menu), label: 'Menu'),
+          NavigationDestination(
+            icon: badges.Badge(
+              showBadge: cart.tableName != null,
+              badgeContent: const Icon(Icons.check, size: 8, color: Colors.white),
+              badgeStyle: const badges.BadgeStyle(badgeColor: Colors.green, padding: EdgeInsets.all(3)),
+              child: const Icon(Icons.table_restaurant_outlined),
+            ),
+            selectedIcon: const Icon(Icons.table_restaurant),
+            label: 'Tables',
+          ),
           NavigationDestination(
             icon: badges.Badge(
               showBadge: orders.activeOrders.isNotEmpty,
-              badgeContent: Text('${orders.activeOrders.length}', style: const TextStyle(color: Colors.white, fontSize: 10)),
-              child: const Icon(Icons.receipt_long),
+              badgeContent: Text('${orders.activeOrders.length}', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+              child: const Icon(Icons.receipt_long_outlined),
             ),
-            label: 'Orders',
+            selectedIcon: const Icon(Icons.receipt_long),
+            label: 'My Orders',
           ),
-          const NavigationDestination(icon: Icon(Icons.table_restaurant), label: 'Tables'),
         ],
       ),
       // Floating cart button
       floatingActionButton: cart.itemCount > 0 ? FloatingActionButton.extended(
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
-        icon: const Icon(Icons.shopping_cart),
-        label: Text('${cart.itemCount} items  -  ${cart.total.toStringAsFixed(2)}'),
+        icon: const Icon(Icons.shopping_cart_checkout),
+        label: Text('${cart.itemCount} items  •  ${cart.total.toStringAsFixed(2)} QAR'),
+        elevation: 4,
       ) : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

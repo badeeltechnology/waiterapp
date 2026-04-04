@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../api/erpnext_client.dart';
 import '../models/models.dart';
 
@@ -28,6 +30,13 @@ class MenuProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    // Load cached data first for offline support
+    if (_items.isEmpty) {
+      await _loadFromCache();
+      if (_items.isNotEmpty) notifyListeners();
+    }
+
+    // Then try to fetch fresh data
     try {
       final results = await Future.wait([
         _client.getItemGroups(),
@@ -35,8 +44,11 @@ class MenuProvider extends ChangeNotifier {
       ]);
       _groups = results[0] as List<ItemGroup>;
       _items = results[1] as List<MenuItem>;
+      // Cache for offline
+      await _saveToCache();
     } catch (e) {
-      debugPrint('Failed to load menu: $e');
+      debugPrint('Failed to load menu from server: $e');
+      // Keep cached data
     }
 
     _isLoading = false;
@@ -54,5 +66,31 @@ class MenuProvider extends ChangeNotifier {
       (i.itemNameAr?.contains(q) ?? false) ||
       i.itemCode.toLowerCase().contains(q)
     ).toList();
+  }
+
+  // ==================== Offline Cache ====================
+
+  Future<void> _saveToCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final groupsJson = _groups.map((g) => {'name': g.name, 'parent_item_group': g.parentGroup, 'image': g.image}).toList();
+    final itemsJson = _items.map((i) => {
+      'name': i.itemCode, 'item_name': i.itemName, 'servepos_item_name_ar': i.itemNameAr,
+      'description': i.description, 'item_group': i.itemGroup, 'standard_rate': i.rate,
+      'image': i.image, 'has_variants': i.hasVariants ? 1 : 0
+    }).toList();
+    await prefs.setString('cached_groups', jsonEncode(groupsJson));
+    await prefs.setString('cached_items', jsonEncode(itemsJson));
+  }
+
+  Future<void> _loadFromCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final groupsStr = prefs.getString('cached_groups');
+    final itemsStr = prefs.getString('cached_items');
+    if (groupsStr != null) {
+      _groups = (jsonDecode(groupsStr) as List).map((g) => ItemGroup.fromJson(g)).toList();
+    }
+    if (itemsStr != null) {
+      _items = (jsonDecode(itemsStr) as List).map((i) => MenuItem.fromJson(i)).toList();
+    }
   }
 }
