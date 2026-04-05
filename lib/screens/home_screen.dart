@@ -6,10 +6,8 @@ import '../providers/menu_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/orders_provider.dart';
 import '../providers/table_provider.dart';
-import 'menu_screen.dart';
-import 'orders_screen.dart';
 import 'tables_screen.dart';
-import 'cart_screen.dart';
+import 'orders_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,12 +18,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-
-  final _screens = const [
-    MenuScreen(),
-    TablesScreen(),
-    OrdersScreen(),
-  ];
 
   @override
   void initState() {
@@ -67,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: theme.colorScheme.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 18),
+              child: const Icon(Icons.restaurant, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
             Column(
@@ -106,16 +98,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ]),
             ),
 
-          // Cart button with badge
-          badges.Badge(
-            showBadge: cart.itemCount > 0,
-            position: badges.BadgePosition.topEnd(top: 2, end: 2),
-            badgeContent: Text('${cart.itemCount}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-            badgeStyle: badges.BadgeStyle(badgeColor: theme.colorScheme.error),
-            child: IconButton(
-              icon: const Icon(Icons.shopping_cart_outlined),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
-            ),
+          // Refresh
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+            tooltip: 'Refresh',
           ),
 
           // Profile menu
@@ -132,8 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
               if (value == 'logout') {
                 orders.stopPolling();
                 auth.logout();
-              } else if (value == 'refresh') {
-                _loadData();
               }
             },
             itemBuilder: (_) => [
@@ -146,28 +131,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ]),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(value: 'refresh', child: Row(children: [Icon(Icons.refresh, size: 18), SizedBox(width: 10), Text('Refresh Menu')])),
               const PopupMenuItem(value: 'logout', child: Row(children: [Icon(Icons.logout, size: 18, color: Colors.red), SizedBox(width: 10), Text('Logout', style: TextStyle(color: Colors.red))])),
             ],
           ),
         ],
       ),
-      body: _screens[_currentIndex],
+      body: _currentIndex == 0 ? const TablesScreen() : const OrdersScreen(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         height: 65,
         destinations: [
-          const NavigationDestination(icon: Icon(Icons.restaurant_menu_outlined), selectedIcon: Icon(Icons.restaurant_menu), label: 'Menu'),
-          NavigationDestination(
-            icon: badges.Badge(
-              showBadge: cart.tableName != null,
-              badgeContent: const Icon(Icons.check, size: 8, color: Colors.white),
-              badgeStyle: const badges.BadgeStyle(badgeColor: Colors.green, padding: EdgeInsets.all(3)),
-              child: const Icon(Icons.table_restaurant_outlined),
-            ),
-            selectedIcon: const Icon(Icons.table_restaurant),
+          const NavigationDestination(
+            icon: Icon(Icons.table_restaurant_outlined),
+            selectedIcon: Icon(Icons.table_restaurant),
             label: 'Tables',
           ),
           NavigationDestination(
@@ -183,14 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      // Floating cart button
-      floatingActionButton: cart.itemCount > 0 ? FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
-        icon: const Icon(Icons.shopping_cart_checkout),
-        label: Text('${cart.itemCount} items  •  ${cart.total.toStringAsFixed(2)} QAR'),
-        elevation: 4,
-      ) : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

@@ -16,7 +16,11 @@ class OrdersScreen extends StatelessWidget {
       child: op.isLoading && op.orders.isEmpty
         ? const Center(child: CircularProgressIndicator())
         : op.orders.isEmpty
-          ? const Center(child: Text('No orders yet', style: TextStyle(color: Colors.grey)))
+          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.receipt_long_outlined, size: 56, color: Colors.grey[300]),
+              const SizedBox(height: 12),
+              Text('No orders yet', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+            ]))
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [
@@ -33,11 +37,11 @@ class OrdersScreen extends StatelessWidget {
                   .where((o) => o.status != 'Ready')
                   .map((o) => _OrderCard(order: o)),
 
-                // Completed orders (faded)
+                // Completed orders
                 if (op.completedOrders.isNotEmpty) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text('Completed', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+                    child: Text('Completed', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
                   ),
                   ...op.completedOrders.map((o) => _OrderCard(order: o)),
                 ],
@@ -47,7 +51,6 @@ class OrdersScreen extends StatelessWidget {
   }
 }
 
-/// Blinking alert banner for newly ready orders
 class _ReadyAlertBanner extends StatefulWidget {
   final List<WaiterOrder> orders;
   const _ReadyAlertBanner({required this.orders});
@@ -78,29 +81,26 @@ class _ReadyAlertBannerState extends State<_ReadyAlertBanner> with SingleTickerP
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (_, child) {
-        final opacity = 0.7 + (_controller.value * 0.3);
-        return Opacity(opacity: opacity, child: child);
-      },
+      builder: (_, child) => Opacity(opacity: 0.7 + (_controller.value * 0.3), child: child),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.red.shade50,
+          color: Colors.green.shade50,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.red.shade300, width: 2),
+          border: Border.all(color: Colors.green.shade400, width: 2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.notifications_active, color: Colors.red.shade700, size: 24),
+                Icon(Icons.restaurant, color: Colors.green.shade700, size: 22),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'FOOD READY — Pick up now!',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red.shade800),
+                    'Ready to Serve!',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green.shade800),
                   ),
                 ),
                 TextButton(
@@ -109,21 +109,21 @@ class _ReadyAlertBannerState extends State<_ReadyAlertBanner> with SingleTickerP
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             ...widget.orders.map((o) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(
                 children: [
-                  Icon(Icons.table_restaurant, size: 16, color: Colors.red.shade600),
+                  Icon(Icons.table_restaurant, size: 14, color: Colors.green.shade600),
                   const SizedBox(width: 6),
                   Text(
-                    '${o.name}${o.table != null ? ' — Table ${o.table}' : ''}',
-                    style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red.shade700),
+                    '${o.name}${o.table != null ? ' - Table ${o.table}' : ''}',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.green.shade700),
                   ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => context.read<OrdersProvider>().acknowledgeReadyOrder(o.name),
-                    child: Icon(Icons.check_circle, color: Colors.red.shade400, size: 20),
+                    child: Icon(Icons.check_circle, color: Colors.green.shade400, size: 20),
                   ),
                 ],
               ),
@@ -143,14 +143,19 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isCompleted = order.status == 'Paid' || order.status == 'Cancelled';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: isReady ? BorderSide(color: Colors.green.shade400, width: 2) : BorderSide.none,
+        side: BorderSide(
+          color: isReady ? Colors.green.shade300 : Colors.grey.shade200,
+          width: isReady ? 2 : 1,
+        ),
       ),
-      color: isReady ? Colors.green.shade50 : null,
+      color: isReady ? Colors.green.shade50 : isCompleted ? Colors.grey.shade50 : null,
       child: InkWell(
         onTap: () => _showOrderDetail(context),
         borderRadius: BorderRadius.circular(12),
@@ -161,71 +166,59 @@ class _OrderCard extends StatelessWidget {
             children: [
               // Header
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(order.name, style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 14)),
+                  if (order.table != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(order.table!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.colorScheme.primary)),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(order.name, style: TextStyle(fontWeight: FontWeight.w500, fontFamily: 'monospace', fontSize: 13, color: Colors.grey[600])),
+                  const Spacer(),
                   _StatusBadge(status: order.status),
                 ],
               ),
 
-              // Ready indicator
               if (isReady) ...[
                 const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.check_circle, size: 16, color: Colors.green.shade700),
-                    const SizedBox(width: 4),
-                    Text('Ready to serve!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.green.shade700)),
-                  ],
-                ),
+                Row(children: [
+                  Icon(Icons.check_circle, size: 14, color: Colors.green.shade700),
+                  const SizedBox(width: 4),
+                  Text('Ready to serve!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.green.shade700)),
+                ]),
               ],
 
               const SizedBox(height: 8),
-
-              // Info row
-              Row(children: [
-                Icon(Icons.restaurant, size: 14, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(order.orderType, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                if (order.table != null) ...[
-                  const SizedBox(width: 12),
-                  Icon(Icons.table_restaurant, size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(order.table!, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                ],
-                if (order.creation != null) ...[
-                  const Spacer(),
-                  Text(
-                    _formatTime(order.creation!),
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                  ),
-                ],
-              ]),
-
-              const Divider(height: 16),
 
               // Items summary
               ...order.items.take(3).map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text('${item.qty.toInt()}x  ${item.itemName}', style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
-                    Text(item.amount.toStringAsFixed(2), style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                    Text('${item.qty.toInt()}x', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey[600])),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(item.itemName, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                    Text(item.amount.toStringAsFixed(2), style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                   ],
                 ),
               )),
               if (order.items.length > 3)
-                Text('+${order.items.length - 3} more items', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                Text('+${order.items.length - 3} more', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
 
-              const Divider(height: 16),
+              const SizedBox(height: 6),
 
-              // Total
+              // Footer
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('${order.total.toStringAsFixed(2)} QAR', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 15)),
+                  if (order.creation != null)
+                    Text(_formatTime(order.creation!), style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  const Spacer(),
+                  Text('${order.total.toStringAsFixed(2)} QAR', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 14)),
                 ],
               ),
             ],
@@ -237,8 +230,7 @@ class _OrderCard extends StatelessWidget {
 
   String _formatTime(String creation) {
     try {
-      final dt = DateTime.parse(creation);
-      return DateFormat('hh:mm a').format(dt);
+      return DateFormat('hh:mm a').format(DateTime.parse(creation));
     } catch (_) {
       return creation;
     }
@@ -250,7 +242,7 @@ class _OrderCard extends StatelessWidget {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
+        initialChildSize: 0.65,
         maxChildSize: 0.9,
         minChildSize: 0.4,
         expand: false,
@@ -261,18 +253,29 @@ class _OrderCard extends StatelessWidget {
             Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(order.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'monospace')),
+                if (order.table != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(order.table!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Text(order.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'monospace')),
+                const Spacer(),
                 _StatusBadge(status: order.status),
               ],
             ),
             const SizedBox(height: 8),
-            Text('${order.orderType}${order.table != null ? '  •  Table: ${order.table}' : ''}  •  Guests: ${order.guests}'),
-            if (order.waiterName != null) Text('Waiter: ${order.waiterName}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            Text(
+              '${order.orderType}${order.room != null ? '  -  ${order.room}' : ''}  -  ${order.guests} guest${order.guests > 1 ? 's' : ''}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            ),
             const Divider(height: 24),
-            const Text('Items', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
             ...order.items.map((item) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
@@ -300,7 +303,7 @@ class _OrderCard extends StatelessWidget {
               ],
             ),
             if (order.notes != null && order.notes!.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text('Notes: ${order.notes}', style: TextStyle(color: Colors.grey[600])),
             ],
             if (order.status == 'Pending') ...[
@@ -350,7 +353,7 @@ class _StatusBadge extends StatelessWidget {
       case 'Pending': return (Colors.orange, Icons.schedule);
       case 'Accepted': return (Colors.blue, Icons.check_circle_outline);
       case 'In Kitchen': return (Colors.purple, Icons.restaurant_menu);
-      case 'Ready': return (Colors.green, Icons.notifications_active);
+      case 'Ready': return (Colors.green, Icons.check_circle);
       case 'Served': return (Colors.teal, Icons.room_service);
       case 'Paid': return (Colors.grey, Icons.paid);
       case 'Cancelled': return (Colors.red, Icons.cancel);

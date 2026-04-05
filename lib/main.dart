@@ -30,7 +30,7 @@ class ServePOSWaiterApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF3B82F6),
+            seedColor: const Color(0xFF1B5E20),
             brightness: Brightness.light,
           ),
           useMaterial3: true,

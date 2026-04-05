@@ -9,6 +9,7 @@ class TableProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _selectedRoom;
 
+  List<TableInfo> get allTables => _tables;
   List<TableInfo> get tables => _selectedRoom == null
     ? _tables
     : _tables.where((t) => t.room == _selectedRoom).toList();
