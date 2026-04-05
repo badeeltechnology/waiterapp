@@ -80,6 +80,32 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          // Online/offline indicator
+          if (!cart.isOnline)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(12)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.wifi_off, size: 14, color: Colors.red.shade700),
+                const SizedBox(width: 4),
+                Text('Offline', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red.shade700)),
+              ]),
+            ),
+
+          // Queued orders count
+          if (cart.queuedCount > 0)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(12)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.cloud_upload_outlined, size: 14, color: Colors.orange.shade700),
+                const SizedBox(width: 4),
+                Text('${cart.queuedCount} queued', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange.shade700)),
+              ]),
+            ),
+
           // Cart button with badge
           badges.Badge(
             showBadge: cart.itemCount > 0,
@@ -148,10 +174,12 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: badges.Badge(
               showBadge: orders.activeOrders.isNotEmpty,
               badgeContent: Text('${orders.activeOrders.length}', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-              child: const Icon(Icons.receipt_long_outlined),
+              badgeStyle: badges.BadgeStyle(badgeColor: orders.hasReadyAlert ? Colors.red : theme.colorScheme.primary),
+              child: Icon(orders.hasReadyAlert ? Icons.notifications_active : Icons.receipt_long_outlined,
+                color: orders.hasReadyAlert ? Colors.red : null),
             ),
             selectedIcon: const Icon(Icons.receipt_long),
-            label: 'My Orders',
+            label: orders.hasReadyAlert ? 'READY!' : 'My Orders',
           ),
         ],
       ),

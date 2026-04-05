@@ -9,6 +9,10 @@ class OrdersProvider extends ChangeNotifier {
   bool _isLoading = false;
   Timer? _pollTimer;
 
+  // Ready to serve notifications
+  final Set<String> _readyNotifiedOrders = {};
+  List<WaiterOrder> _newlyReadyOrders = [];
+
   List<WaiterOrder> get orders => _orders;
   bool get isLoading => _isLoading;
 
@@ -17,6 +21,16 @@ class OrdersProvider extends ChangeNotifier {
 
   List<WaiterOrder> get completedOrders =>
     _orders.where((o) => ['Paid', 'Cancelled'].contains(o.status)).toList();
+
+  /// Orders that just became "Ready" — for alert display
+  List<WaiterOrder> get newlyReadyOrders => _newlyReadyOrders;
+
+  /// Whether there are unacknowledged ready orders
+  bool get hasReadyAlert => _newlyReadyOrders.isNotEmpty;
+
+  /// All orders currently in "Ready" status
+  List<WaiterOrder> get readyOrders =>
+    _orders.where((o) => o.status == 'Ready').toList();
 
   String _waiterName = '';
 
@@ -29,12 +43,43 @@ class OrdersProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final previousOrders = Map.fromEntries(
+        _orders.map((o) => MapEntry(o.name, o.status))
+      );
+
       _orders = await _client.getMyOrders(_waiterName);
+
+      // Detect orders that just became "Ready"
+      for (final order in _orders) {
+        if (order.status == 'Ready' &&
+            previousOrders[order.name] != 'Ready' &&
+            !_readyNotifiedOrders.contains(order.name)) {
+          _newlyReadyOrders.add(order);
+          _readyNotifiedOrders.add(order.name);
+        }
+      }
+
+      // Clean up dismissed orders that are no longer Ready
+      _newlyReadyOrders.removeWhere(
+        (o) => !_orders.any((curr) => curr.name == o.name && curr.status == 'Ready')
+      );
     } catch (e) {
       debugPrint('Failed to load orders: $e');
     }
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Acknowledge a ready order notification (dismiss the alert)
+  void acknowledgeReadyOrder(String orderName) {
+    _newlyReadyOrders.removeWhere((o) => o.name == orderName);
+    notifyListeners();
+  }
+
+  /// Dismiss all ready alerts
+  void acknowledgeAllReady() {
+    _newlyReadyOrders.clear();
     notifyListeners();
   }
 
@@ -53,10 +98,10 @@ class OrdersProvider extends ChangeNotifier {
     await loadOrders();
   }
 
-  // Start polling for status updates
+  // Start polling — every 10 seconds
   void startPolling() {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) => loadOrders());
+    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) => loadOrders());
   }
 
   void stopPolling() {

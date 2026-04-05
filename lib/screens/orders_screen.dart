@@ -17,18 +17,128 @@ class OrdersScreen extends StatelessWidget {
         ? const Center(child: CircularProgressIndicator())
         : op.orders.isEmpty
           ? const Center(child: Text('No orders yet', style: TextStyle(color: Colors.grey)))
-          : ListView.builder(
+          : ListView(
               padding: const EdgeInsets.all(12),
-              itemCount: op.orders.length,
-              itemBuilder: (_, i) => _OrderCard(order: op.orders[i]),
+              children: [
+                // Ready to serve alert banner
+                if (op.hasReadyAlert) _ReadyAlertBanner(orders: op.newlyReadyOrders),
+
+                // Ready orders pinned at top
+                ...op.readyOrders
+                  .where((o) => !op.newlyReadyOrders.any((n) => n.name == o.name))
+                  .map((o) => _OrderCard(order: o, isReady: true)),
+
+                // Other active orders
+                ...op.activeOrders
+                  .where((o) => o.status != 'Ready')
+                  .map((o) => _OrderCard(order: o)),
+
+                // Completed orders (faded)
+                if (op.completedOrders.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text('Completed', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+                  ),
+                  ...op.completedOrders.map((o) => _OrderCard(order: o)),
+                ],
+              ],
             ),
+    );
+  }
+}
+
+/// Blinking alert banner for newly ready orders
+class _ReadyAlertBanner extends StatefulWidget {
+  final List<WaiterOrder> orders;
+  const _ReadyAlertBanner({required this.orders});
+
+  @override
+  State<_ReadyAlertBanner> createState() => _ReadyAlertBannerState();
+}
+
+class _ReadyAlertBannerState extends State<_ReadyAlertBanner> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, child) {
+        final opacity = 0.7 + (_controller.value * 0.3);
+        return Opacity(opacity: opacity, child: child);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.red.shade300, width: 2),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.notifications_active, color: Colors.red.shade700, size: 24),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'FOOD READY — Pick up now!',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red.shade800),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => context.read<OrdersProvider>().acknowledgeAllReady(),
+                  child: const Text('Dismiss', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...widget.orders.map((o) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.table_restaurant, size: 16, color: Colors.red.shade600),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${o.name}${o.table != null ? ' — Table ${o.table}' : ''}',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red.shade700),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => context.read<OrdersProvider>().acknowledgeReadyOrder(o.name),
+                    child: Icon(Icons.check_circle, color: Colors.red.shade400, size: 20),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
     );
   }
 }
 
 class _OrderCard extends StatelessWidget {
   final WaiterOrder order;
-  const _OrderCard({required this.order});
+  final bool isReady;
+  const _OrderCard({required this.order, this.isReady = false});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +146,11 @@ class _OrderCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isReady ? BorderSide(color: Colors.green.shade400, width: 2) : BorderSide.none,
+      ),
+      color: isReady ? Colors.green.shade50 : null,
       child: InkWell(
         onTap: () => _showOrderDetail(context),
         borderRadius: BorderRadius.circular(12),
@@ -53,6 +167,19 @@ class _OrderCard extends StatelessWidget {
                   _StatusBadge(status: order.status),
                 ],
               ),
+
+              // Ready indicator
+              if (isReady) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, size: 16, color: Colors.green.shade700),
+                    const SizedBox(width: 4),
+                    Text('Ready to serve!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.green.shade700)),
+                  ],
+                ),
+              ],
+
               const SizedBox(height: 8),
 
               // Info row
@@ -204,24 +331,30 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getColor();
+    final (color, icon) = _getColorAndIcon();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(12)),
-      child: Text(status, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[Icon(icon, size: 12, color: color), const SizedBox(width: 4)],
+          Text(status, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 
-  Color _getColor() {
+  (Color, IconData?) _getColorAndIcon() {
     switch (status) {
-      case 'Pending': return Colors.orange;
-      case 'Accepted': return Colors.blue;
-      case 'In Kitchen': return Colors.purple;
-      case 'Ready': return Colors.green;
-      case 'Served': return Colors.teal;
-      case 'Paid': return Colors.grey;
-      case 'Cancelled': return Colors.red;
-      default: return Colors.grey;
+      case 'Pending': return (Colors.orange, Icons.schedule);
+      case 'Accepted': return (Colors.blue, Icons.check_circle_outline);
+      case 'In Kitchen': return (Colors.purple, Icons.restaurant_menu);
+      case 'Ready': return (Colors.green, Icons.notifications_active);
+      case 'Served': return (Colors.teal, Icons.room_service);
+      case 'Paid': return (Colors.grey, Icons.paid);
+      case 'Cancelled': return (Colors.red, Icons.cancel);
+      default: return (Colors.grey, null);
     }
   }
 }
