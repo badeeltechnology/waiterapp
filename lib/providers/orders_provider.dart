@@ -7,6 +7,7 @@ class OrdersProvider extends ChangeNotifier {
   final _client = ERPNextClient();
   List<WaiterOrder> _orders = [];
   bool _isLoading = false;
+  String? _error;
   Timer? _pollTimer;
 
   // Ready to serve notifications
@@ -15,6 +16,7 @@ class OrdersProvider extends ChangeNotifier {
 
   List<WaiterOrder> get orders => _orders;
   bool get isLoading => _isLoading;
+  String? get error => _error;
 
   List<WaiterOrder> get activeOrders =>
     _orders.where((o) => !['Paid', 'Cancelled'].contains(o.status)).toList();
@@ -42,6 +44,7 @@ class OrdersProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    _error = null;
     try {
       final previousOrders = Map.fromEntries(
         _orders.map((o) => MapEntry(o.name, o.status))
@@ -64,6 +67,7 @@ class OrdersProvider extends ChangeNotifier {
         (o) => !_orders.any((curr) => curr.name == o.name && curr.status == 'Ready')
       );
     } catch (e, stack) {
+      _error = 'Failed to load orders: $e';
       debugPrint('Failed to load orders: $e');
       debugPrint('Stack: $stack');
     }

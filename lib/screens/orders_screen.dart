@@ -16,11 +16,25 @@ class OrdersScreen extends StatelessWidget {
       child: op.isLoading && op.orders.isEmpty
         ? const Center(child: CircularProgressIndicator())
         : op.orders.isEmpty
-          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.receipt_long_outlined, size: 56, color: Colors.grey[300]),
-              const SizedBox(height: 12),
-              Text('No orders yet', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
-            ]))
+          ? ListView(
+              children: [
+                const SizedBox(height: 100),
+                Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.receipt_long_outlined, size: 56, color: Colors.grey[300]),
+                  const SizedBox(height: 12),
+                  Text('No orders yet', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+                  const SizedBox(height: 8),
+                  const Text('Pull down to refresh', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  if (op.error != null) ...[
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(op.error!, style: TextStyle(color: Colors.red[400], fontSize: 12), textAlign: TextAlign.center),
+                    ),
+                  ],
+                ])),
+              ],
+            )
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [

@@ -188,59 +188,35 @@ class ERPNextClient {
   }
 
   Future<List<WaiterOrder>> getMyOrders(String waiterName) async {
+    debugPrint('getMyOrders called for waiter: "$waiterName"');
+
     // Try the dedicated API first
     try {
       final result = await callMethod('servepos.api.waiter.get_my_orders', args: {'waiter_name': waiterName});
-      debugPrint('getMyOrders response type: ${result.runtimeType}, waiter: $waiterName');
+      if (result is List) {
+        debugPrint('get_my_orders API returned ${result.length} orders');
+        if (result.isNotEmpty) {
+          return result.map((o) => WaiterOrder.fromJson(o as Map<String, dynamic>)).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('get_my_orders API failed: $e');
+    }
+
+    // Fallback: fetch all non-completed orders, filter client-side
+    // This handles cases where waiter_name was overwritten by before_insert hook
+    try {
+      debugPrint('Fallback: fetching all active orders');
+      final result = await callMethod('servepos.api.waiter.get_my_orders', args: {});
       if (result is List && result.isNotEmpty) {
+        debugPrint('Fallback got ${result.length} total orders');
         return result.map((o) => WaiterOrder.fromJson(o as Map<String, dynamic>)).toList();
       }
     } catch (e) {
-      debugPrint('getMyOrders API error: $e');
+      debugPrint('Fallback failed: $e');
     }
 
-    // Fallback: fetch directly from doctype with filters
-    try {
-      debugPrint('getMyOrders fallback: fetching from ServePOS Waiter Order doctype');
-      final list = await getList(
-        'ServePOS Waiter Order',
-        fields: ['name', 'waiter', 'waiter_name', 'table', 'room', 'order_type',
-                 'guests', 'status', 'notes', 'edit_log', 'creation'],
-        filters: [['waiter_name', '=', waiterName]],
-        orderBy: 'creation desc',
-      );
-      if (list.isEmpty) {
-        // Try filtering by waiter field instead
-        final list2 = await getList(
-          'ServePOS Waiter Order',
-          fields: ['name', 'waiter', 'waiter_name', 'table', 'room', 'order_type',
-                   'guests', 'status', 'notes', 'edit_log', 'creation'],
-          filters: [['waiter', 'like', '%$waiterName%']],
-          orderBy: 'creation desc',
-        );
-        if (list2.isNotEmpty) {
-          return await _fetchOrdersWithItems(list2);
-        }
-      }
-      return await _fetchOrdersWithItems(list);
-    } catch (e) {
-      debugPrint('getMyOrders fallback error: $e');
-    }
     return [];
-  }
-
-  Future<List<WaiterOrder>> _fetchOrdersWithItems(List<dynamic> orderList) async {
-    final orders = <WaiterOrder>[];
-    for (final o in orderList) {
-      try {
-        final doc = await getDoc('ServePOS Waiter Order', o['name']);
-        orders.add(WaiterOrder.fromJson(doc));
-      } catch (e) {
-        // If can't fetch full doc, create order without items
-        orders.add(WaiterOrder.fromJson(o as Map<String, dynamic>));
-      }
-    }
-    return orders;
   }
 
   Future<void> updateOrderStatus(String orderName, String status) async {
