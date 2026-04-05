@@ -63,8 +63,9 @@ class OrdersProvider extends ChangeNotifier {
       _newlyReadyOrders.removeWhere(
         (o) => !_orders.any((curr) => curr.name == o.name && curr.status == 'Ready')
       );
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Failed to load orders: $e');
+      debugPrint('Stack: $stack');
     }
 
     _isLoading = false;
