@@ -73,7 +73,9 @@ class ERPNextClient {
     final params = <String, String>{};
     if (fields != null) params['fields'] = jsonEncode(fields);
     if (filters != null) params['filters'] = jsonEncode(filters);
-    if (limit > 0) params['limit_page_length'] = '$limit';
+    // Frappe defaults to 20 records if limit_page_length is not set.
+    // Pass 0 to fetch all records, or a specific number to limit.
+    params['limit_page_length'] = limit > 0 ? '$limit' : '0';
     if (orderBy != null) params['order_by'] = orderBy;
 
     final uri = Uri.parse('$_baseUrl/api/resource/$doctype').replace(queryParameters: params);
