@@ -55,9 +55,9 @@ class Modifier {
   Modifier({required this.name, required this.price, this.isDefault = false});
 
   factory Modifier.fromJson(Map<String, dynamic> json) => Modifier(
-    name: json['modifier_name'] ?? '',
+    name: json['name'] ?? json['modifier_name'] ?? '',
     price: (json['price'] ?? 0).toDouble(),
-    isDefault: json['is_default'] == 1,
+    isDefault: json['is_default'] == 1 || json['is_default'] == true,
   );
 
   Map<String, dynamic> toJson() => {'name': name, 'price': price};
