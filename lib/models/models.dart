@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 // ==================== Data Models ====================
 
 class ItemGroup {
@@ -159,7 +161,7 @@ class CartItem {
     'qty': qty,
     'rate': rate,
     'modifiers': modifiers.isNotEmpty
-        ? modifiers.map((m) => m.toJson()).toList().toString()
+        ? jsonEncode(modifiers.map((m) => m.toJson()).toList())
         : null,
     'modifier_total': modifierTotal,
     'special_instructions': specialInstructions,
