@@ -109,7 +109,6 @@ class _WaiterLoginScreenState extends State<_WaiterLoginScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         actions: [
-          // Reset config
           PopupMenuButton<String>(
             onSelected: (v) {
               if (v == 'reset') auth.resetConfig();
@@ -125,19 +124,25 @@ class _WaiterLoginScreenState extends State<_WaiterLoginScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Text('Welcome', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text('Select your name to continue', style: TextStyle(color: Colors.grey[600])),
-              Text(auth.serverUrl, style: TextStyle(color: Colors.grey[400], fontSize: 11)),
-              const SizedBox(height: 24),
-
-              if (!_showPinEntry) ...[
-                // Waiter list
+        child: !_showPinEntry
+          // Waiter list
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 20),
+                      Text('Welcome', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text('Select your name to continue', style: TextStyle(color: Colors.grey[600])),
+                      Text(auth.serverUrl, style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Expanded(
                   child: auth.waiters.isEmpty
                     ? Center(
@@ -156,6 +161,7 @@ class _WaiterLoginScreenState extends State<_WaiterLoginScreen> {
                     : RefreshIndicator(
                         onRefresh: () => auth.loadWaiters(),
                         child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
                           itemCount: auth.waiters.length,
                           itemBuilder: (_, i) {
                             final w = auth.waiters[i];
@@ -185,61 +191,74 @@ class _WaiterLoginScreenState extends State<_WaiterLoginScreen> {
                         ),
                       ),
                 ),
-              ] else ...[
-                // PIN entry
-                const Spacer(),
-                CircleAvatar(
-                  radius: 36,
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Text(
-                    (_selectedWaiter ?? '?')[0].toUpperCase(),
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(_selectedWaiter ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: 200,
-                  child: TextField(
-                    controller: _pinController,
-                    obscureText: true,
-                    autofocus: true,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: 8,
-                    style: const TextStyle(fontSize: 24, letterSpacing: 12, fontWeight: FontWeight.bold),
-                    decoration: InputDecoration(
-                      hintText: 'PIN',
-                      counterText: '',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onSubmitted: (_) => _login(),
-                  ),
-                ),
-                if (auth.error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(auth.error!, style: TextStyle(color: Colors.red[700], fontSize: 13)),
-                ],
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: auth.isLoading ? null : _login,
-                  style: FilledButton.styleFrom(minimumSize: const Size(200, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: auth.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Login', style: TextStyle(fontSize: 16)),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => setState(() { _showPinEntry = false; _selectedWaiter = null; }),
-                  child: const Text('Back to waiter list'),
-                ),
-                const Spacer(),
               ],
-            ],
-          ),
-        ),
+            )
+          // PIN entry — full screen centered
+          : Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: CircleAvatar(
+                        radius: 44,
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        child: Text(
+                          (_selectedWaiter ?? '?')[0].toUpperCase(),
+                          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(_selectedWaiter ?? '', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: _pinController,
+                      obscureText: true,
+                      autofocus: true,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      maxLength: 8,
+                      style: const TextStyle(fontSize: 28, letterSpacing: 12, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        hintText: 'Enter PIN',
+                        hintStyle: TextStyle(fontSize: 16, letterSpacing: 1, color: Colors.grey[400]),
+                        counterText: '',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                      ),
+                      onSubmitted: (_) => _login(),
+                    ),
+                    if (auth.error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(auth.error!, style: TextStyle(color: Colors.red[700], fontSize: 13), textAlign: TextAlign.center),
+                    ],
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: auth.isLoading ? null : _login,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: auth.isLoading
+                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Login', style: TextStyle(fontSize: 17)),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => setState(() { _showPinEntry = false; _selectedWaiter = null; }),
+                        child: const Text('Back to waiter list'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
       ),
     );
   }

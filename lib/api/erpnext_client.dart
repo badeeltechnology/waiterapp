@@ -190,30 +190,15 @@ class ERPNextClient {
   Future<List<WaiterOrder>> getMyOrders(String waiterName) async {
     debugPrint('getMyOrders called for waiter: "$waiterName"');
 
-    // Try the dedicated API first
+    // Try the dedicated API
     try {
       final result = await callMethod('servepos.api.waiter.get_my_orders', args: {'waiter_name': waiterName});
       if (result is List) {
-        debugPrint('get_my_orders API returned ${result.length} orders');
-        if (result.isNotEmpty) {
-          return result.map((o) => WaiterOrder.fromJson(o as Map<String, dynamic>)).toList();
-        }
-      }
-    } catch (e) {
-      debugPrint('get_my_orders API failed: $e');
-    }
-
-    // Fallback: fetch all non-completed orders, filter client-side
-    // This handles cases where waiter_name was overwritten by before_insert hook
-    try {
-      debugPrint('Fallback: fetching all active orders');
-      final result = await callMethod('servepos.api.waiter.get_my_orders', args: {});
-      if (result is List && result.isNotEmpty) {
-        debugPrint('Fallback got ${result.length} total orders');
+        debugPrint('get_my_orders returned ${result.length} orders');
         return result.map((o) => WaiterOrder.fromJson(o as Map<String, dynamic>)).toList();
       }
     } catch (e) {
-      debugPrint('Fallback failed: $e');
+      debugPrint('get_my_orders API failed: $e');
     }
 
     return [];
