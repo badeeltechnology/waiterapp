@@ -66,6 +66,60 @@ class _TakeOrderScreenState extends State<TakeOrderScreen> {
     }
   }
 
+  Future<void> _editCartItem(int index) async {
+    final cart = context.read<CartProvider>();
+    final menu = context.read<MenuProvider>();
+    final item = cart.items[index];
+
+    // Build a MenuItem from the cart item
+    final menuItem = MenuItem(
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      itemNameAr: item.itemNameAr,
+      itemGroup: '',
+      rate: item.rate,
+    );
+
+    final modGroups = await menu.getItemModifiers(item.itemCode);
+
+    if (modGroups.isNotEmpty && mounted) {
+      final result = await showModalBottomSheet<CartItem>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => ModifierSheet(
+          item: menuItem,
+          modifierGroups: modGroups,
+          existingItem: item,
+        ),
+      );
+      if (result != null) {
+        cart.replaceItem(index, result);
+      }
+    } else if (mounted) {
+      // No modifiers — open a simple edit dialog for qty and instructions
+      final instrController = TextEditingController(text: item.specialInstructions);
+      final result = await showDialog<String>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(item.itemName),
+          content: TextField(
+            controller: instrController,
+            maxLines: 3,
+            decoration: const InputDecoration(hintText: 'Special instructions...'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(context, instrController.text), child: const Text('Save')),
+          ],
+        ),
+      );
+      if (result != null) {
+        cart.updateSpecialInstructions(index, result.isEmpty ? null : result);
+      }
+    }
+  }
+
   void _showAddedFeedback(String name) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -265,6 +319,7 @@ class _TakeOrderScreenState extends State<TakeOrderScreen> {
             notesController: _notesController,
             onToggle: () => setState(() => _showCart = !_showCart),
             onSubmit: cart.isSubmitting ? null : _submitOrder,
+            onEditItem: _editCartItem,
           ),
     );
   }
@@ -360,6 +415,7 @@ class _CartBottomBar extends StatelessWidget {
   final TextEditingController notesController;
   final VoidCallback onToggle;
   final VoidCallback? onSubmit;
+  final Future<void> Function(int index) onEditItem;
 
   const _CartBottomBar({
     required this.cart,
@@ -367,6 +423,7 @@ class _CartBottomBar extends StatelessWidget {
     required this.notesController,
     required this.onToggle,
     required this.onSubmit,
+    required this.onEditItem,
   });
 
   @override
@@ -433,6 +490,7 @@ class _CartBottomBar extends StatelessWidget {
                     item: cart.items[i],
                     index: i,
                     cart: cart,
+                    onEdit: () => onEditItem(i),
                   ),
                 ),
               ),
@@ -484,60 +542,75 @@ class _CartItemRow extends StatelessWidget {
   final CartItem item;
   final int index;
   final CartProvider cart;
+  final VoidCallback onEdit;
 
-  const _CartItemRow({required this.item, required this.index, required this.cart});
+  const _CartItemRow({required this.item, required this.index, required this.cart, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          // Item info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onEdit,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          children: [
+            // Item info (tappable area)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                      Icon(Icons.edit, size: 12, color: Colors.grey[400]),
+                    ],
+                  ),
+                  if (item.modifiers.isNotEmpty)
+                    Text(
+                      item.modifiers.map((m) => m.name).join(', '),
+                      style: TextStyle(fontSize: 10, color: theme.colorScheme.primary),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                    ),
+                  if (item.specialInstructions != null && item.specialInstructions!.isNotEmpty)
+                    Text(
+                      '"${item.specialInstructions}"',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Qty controls
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (item.modifiers.isNotEmpty)
-                  Text(
-                    item.modifiers.map((m) => m.name).join(', '),
-                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                  ),
-                if (item.specialInstructions != null && item.specialInstructions!.isNotEmpty)
-                  Text(
-                    '"${item.specialInstructions}"',
-                    style: TextStyle(fontSize: 10, color: Colors.grey[500], fontStyle: FontStyle.italic),
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                  ),
+                _qtyButton(Icons.remove, () => cart.updateQty(index, item.qty - 1)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('${item.qty}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                _qtyButton(Icons.add, () => cart.updateQty(index, item.qty + 1)),
               ],
             ),
-          ),
 
-          // Qty controls
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _qtyButton(Icons.remove, () => cart.updateQty(index, item.qty - 1)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text('${item.qty}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            // Amount
+            SizedBox(
+              width: 60,
+              child: Text(
+                item.amount.toStringAsFixed(2),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                textAlign: TextAlign.right,
               ),
-              _qtyButton(Icons.add, () => cart.updateQty(index, item.qty + 1)),
-            ],
-          ),
-
-          // Amount
-          SizedBox(
-            width: 60,
-            child: Text(
-              item.amount.toStringAsFixed(2),
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-              textAlign: TextAlign.right,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

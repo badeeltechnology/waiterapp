@@ -4,8 +4,9 @@ import '../models/models.dart';
 class ModifierSheet extends StatefulWidget {
   final MenuItem item;
   final List<ModifierGroup> modifierGroups;
+  final CartItem? existingItem; // For edit mode
 
-  const ModifierSheet({super.key, required this.item, required this.modifierGroups});
+  const ModifierSheet({super.key, required this.item, required this.modifierGroups, this.existingItem});
 
   @override
   State<ModifierSheet> createState() => _ModifierSheetState();
@@ -16,15 +17,35 @@ class _ModifierSheetState extends State<ModifierSheet> {
   final _instructionsController = TextEditingController();
   int _qty = 1;
 
+  bool get _isEditMode => widget.existingItem != null;
+
   @override
   void initState() {
     super.initState();
-    // Initialize selections — only pre-select defaults
-    for (final group in widget.modifierGroups) {
-      _selectedNames[group.groupName] = {};
-      for (final mod in group.modifiers) {
-        if (mod.isDefault) {
-          _selectedNames[group.groupName]!.add(mod.name);
+
+    if (widget.existingItem != null) {
+      // Edit mode — restore selections from existing cart item
+      final existingModNames = widget.existingItem!.modifiers.map((m) => m.name).toSet();
+      for (final group in widget.modifierGroups) {
+        _selectedNames[group.groupName] = {};
+        for (final mod in group.modifiers) {
+          if (existingModNames.contains(mod.name)) {
+            _selectedNames[group.groupName]!.add(mod.name);
+          }
+        }
+      }
+      _qty = widget.existingItem!.qty;
+      if (widget.existingItem!.specialInstructions != null) {
+        _instructionsController.text = widget.existingItem!.specialInstructions!;
+      }
+    } else {
+      // New item — pre-select defaults
+      for (final group in widget.modifierGroups) {
+        _selectedNames[group.groupName] = {};
+        for (final mod in group.modifiers) {
+          if (mod.isDefault) {
+            _selectedNames[group.groupName]!.add(mod.name);
+          }
         }
       }
     }
@@ -204,7 +225,7 @@ class _ModifierSheetState extends State<ModifierSheet> {
                         ));
                       } : null,
                       style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-                      child: Text('Add  -  ${totalAmount.toStringAsFixed(2)} QAR', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      child: Text('${_isEditMode ? 'Update' : 'Add'}  -  ${totalAmount.toStringAsFixed(2)} QAR', style: const TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ]),

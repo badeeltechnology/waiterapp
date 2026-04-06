@@ -110,6 +110,13 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void replaceItem(int index, CartItem item) {
+    if (index >= 0 && index < _items.length) {
+      _items[index] = item;
+      notifyListeners();
+    }
+  }
+
   void updateSpecialInstructions(int index, String? instructions) {
     _items[index].specialInstructions = instructions;
     notifyListeners();
