@@ -8,12 +8,14 @@ class ERPNextClient {
   String _baseUrl = '';
   String _apiKey = '';
   String _apiSecret = '';
+  String _posProfile = '';
 
   static final ERPNextClient _instance = ERPNextClient._internal();
   factory ERPNextClient() => _instance;
   ERPNextClient._internal();
 
   String get baseUrl => _baseUrl;
+  String get posProfile => _posProfile;
   bool get isConfigured => _baseUrl.isNotEmpty && _apiKey.isNotEmpty;
 
   Future<void> init() async {
@@ -21,9 +23,10 @@ class ERPNextClient {
     _baseUrl = prefs.getString('erpnext_url') ?? '';
     _apiKey = prefs.getString('api_key') ?? '';
     _apiSecret = prefs.getString('api_secret') ?? '';
+    _posProfile = prefs.getString('pos_profile') ?? '';
   }
 
-  Future<void> configure(String url, String apiKey, String apiSecret) async {
+  Future<void> configure(String url, String apiKey, String apiSecret, {String? posProfile}) async {
     _baseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
     _apiKey = apiKey;
     _apiSecret = apiSecret;
@@ -31,16 +34,35 @@ class ERPNextClient {
     await prefs.setString('erpnext_url', _baseUrl);
     await prefs.setString('api_key', _apiKey);
     await prefs.setString('api_secret', _apiSecret);
+    if (posProfile != null) {
+      _posProfile = posProfile;
+      await prefs.setString('pos_profile', posProfile);
+    }
+  }
+
+  Future<void> setPosProfile(String posProfile) async {
+    _posProfile = posProfile;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('pos_profile', posProfile);
+  }
+
+  String _requireProfile() {
+    if (_posProfile.isEmpty) {
+      throw Exception('pos_profile is required. Configure the device POS Profile first.');
+    }
+    return _posProfile;
   }
 
   Future<void> clearConfig() async {
     _baseUrl = '';
     _apiKey = '';
     _apiSecret = '';
+    _posProfile = '';
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('erpnext_url');
     await prefs.remove('api_key');
     await prefs.remove('api_secret');
+    await prefs.remove('pos_profile');
   }
 
   Map<String, String> get _headers => {
@@ -113,10 +135,13 @@ class ERPNextClient {
   // ==================== Waiter Auth ====================
 
   Future<List<Map<String, dynamic>>> getWaiters() async {
-    final result = await callMethod('servepos.api.waiter.get_waiters');
-    if (result is List) {
-      return result.cast<Map<String, dynamic>>();
-    }
+    // Centralized registry — filtered by POS Profile server-side.
+    final pos_profile = _requireProfile();
+    final result = await callMethod(
+      'servepos.api.registry.get_waiters',
+      args: {'pos_profile': pos_profile},
+    );
+    if (result is List) return result.cast<Map<String, dynamic>>();
     return [];
   }
 
@@ -129,25 +154,31 @@ class ERPNextClient {
   }
 
   // ==================== Menu ====================
+  // All list APIs go through servepos.api.registry — the single source of
+  // truth for POS Profile filtering. Do NOT use getList() here.
 
   Future<List<ItemGroup>> getItemGroups() async {
-    final list = await getList('Item Group', fields: ['name', 'parent_item_group', 'image']);
-    return list.map((g) => ItemGroup.fromJson(g)).toList();
+    final pos_profile = _requireProfile();
+    final result = await callMethod(
+      'servepos.api.registry.get_item_groups',
+      args: {'pos_profile': pos_profile},
+    );
+    if (result is List) {
+      return result.map((g) => ItemGroup.fromJson(g as Map<String, dynamic>)).toList();
+    }
+    return [];
   }
 
   Future<List<MenuItem>> getItems() async {
-    final fields = [
-      'name', 'item_name', 'description', 'item_group', 'standard_rate',
-      'stock_uom', 'image', 'has_variants', 'variant_of',
-      'servepos_item_name_ar', 'servepos_is_available'
-    ];
-    try {
-      final list = await getList('Item', fields: fields, filters: [['disabled', '=', 0], ['servepos_is_available', '=', 1]]);
-      return list.map((i) => MenuItem.fromJson(i)).toList();
-    } catch (_) {
-      final list = await getList('Item', fields: ['name', 'item_name', 'description', 'item_group', 'standard_rate', 'image', 'has_variants'], filters: [['disabled', '=', 0]]);
-      return list.map((i) => MenuItem.fromJson(i)).toList();
+    final pos_profile = _requireProfile();
+    final result = await callMethod(
+      'servepos.api.registry.get_items',
+      args: {'pos_profile': pos_profile},
+    );
+    if (result is List) {
+      return result.map((i) => MenuItem.fromJson(i as Map<String, dynamic>)).toList();
     }
+    return [];
   }
 
   Future<List<ModifierGroup>> getItemModifiers(String itemCode) async {
@@ -163,13 +194,33 @@ class ERPNextClient {
   // ==================== Tables & Rooms ====================
 
   Future<List<TableInfo>> getTables() async {
-    final list = await getList('ServePOS Table', fields: ['name', 'table_name', 'room', 'capacity', 'status', 'is_active']);
-    return list.map((t) => TableInfo.fromJson(t)).where((t) => t.isActive).toList();
+    final pos_profile = _requireProfile();
+    final result = await callMethod(
+      'servepos.api.registry.get_tables',
+      args: {'pos_profile': pos_profile},
+    );
+    if (result is List) {
+      return result
+          .map((t) => TableInfo.fromJson(t as Map<String, dynamic>))
+          .where((t) => t.isActive)
+          .toList();
+    }
+    return [];
   }
 
   Future<List<Room>> getRooms() async {
-    final list = await getList('ServePOS Room', fields: ['name', 'room_name', 'is_active']);
-    return list.map((r) => Room.fromJson(r)).where((r) => r.isActive).toList();
+    final pos_profile = _requireProfile();
+    final result = await callMethod(
+      'servepos.api.registry.get_rooms',
+      args: {'pos_profile': pos_profile},
+    );
+    if (result is List) {
+      return result
+          .map((r) => Room.fromJson(r as Map<String, dynamic>))
+          .where((r) => r.isActive)
+          .toList();
+    }
+    return [];
   }
 
   // ==================== Waiter Orders ====================
