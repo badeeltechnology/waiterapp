@@ -1,14 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'providers/auth_provider.dart';
 import 'providers/menu_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/orders_provider.dart';
 import 'providers/table_provider.dart';
+import 'providers/calls_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+/// Handle background FCM messages (must be top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  // Background messages are handled by system notification tray automatically
+  debugPrint('Background FCM: ${message.data}');
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase (will fail gracefully if google-services.json is missing)
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  } catch (e) {
+    debugPrint('Firebase init skipped (not configured): $e');
+  }
+
   runApp(const ServePOSWaiterApp());
 }
 
@@ -24,6 +45,7 @@ class ServePOSWaiterApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => OrdersProvider()),
         ChangeNotifierProvider(create: (_) => TableProvider()),
+        ChangeNotifierProvider(create: (_) => CallsProvider()),
       ],
       child: MaterialApp(
         title: 'ServePOS Waiter',

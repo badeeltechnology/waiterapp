@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../providers/auth_provider.dart';
 import '../providers/menu_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/orders_provider.dart';
 import '../providers/table_provider.dart';
+import '../providers/calls_provider.dart';
+import '../api/erpnext_client.dart';
+import '../models/models.dart';
 import 'tables_screen.dart';
 import 'orders_screen.dart';
+import 'calls_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,16 +35,79 @@ class _HomeScreenState extends State<HomeScreen> {
     final menu = context.read<MenuProvider>();
     final orders = context.read<OrdersProvider>();
     final tables = context.read<TableProvider>();
+    final calls = context.read<CallsProvider>();
 
     orders.setWaiterName(auth.waiterName);
+    calls.setWaiterName(auth.waiterName);
 
     await Future.wait([
       menu.loadMenu(),
       orders.loadOrders(),
       tables.loadTables(),
+      calls.loadCalls(),
     ]);
 
     orders.startPolling();
+    calls.startPolling();
+
+    // Setup FCM
+    _setupFCM(auth.waiterName);
+  }
+
+  Future<void> _setupFCM(String waiterName) async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+
+      // Request permission
+      await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      // Get and register FCM token
+      final token = await messaging.getToken();
+      if (token != null && waiterName.isNotEmpty) {
+        try {
+          await ERPNextClient().registerFcmToken(waiterName, token);
+          debugPrint('FCM token registered');
+        } catch (e) {
+          debugPrint('FCM token registration failed: $e');
+        }
+      }
+
+      // Listen for token refresh
+      messaging.onTokenRefresh.listen((newToken) async {
+        try {
+          await ERPNextClient().registerFcmToken(waiterName, newToken);
+        } catch (_) {}
+      });
+
+      // Foreground messages
+      FirebaseMessaging.onMessage.listen((message) {
+        final data = message.data;
+        final calls = context.read<CallsProvider>();
+
+        if (data['type'] == 'waiter_call') {
+          final call = WaiterCall.fromFcmData(data);
+          calls.onNewCall(call);
+        } else if (data['type'] == 'waiter_call_accepted') {
+          calls.onCallAccepted(data['call_name'] ?? '', data['accepted_by'] ?? '');
+        }
+      });
+
+      // When user taps notification from background
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        final data = message.data;
+        if (data['type'] == 'waiter_call') {
+          setState(() => _currentIndex = 1); // Switch to Calls tab
+          final calls = context.read<CallsProvider>();
+          calls.onNewCall(WaiterCall.fromFcmData(data));
+        }
+      });
+    } catch (e) {
+      debugPrint('FCM setup skipped: $e');
+    }
   }
 
   @override
@@ -47,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = context.watch<AuthProvider>();
     final cart = context.watch<CartProvider>();
     final orders = context.watch<OrdersProvider>();
+    final calls = context.watch<CallsProvider>();
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -136,7 +205,25 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _currentIndex == 0 ? const TablesScreen() : const OrdersScreen(),
+      body: Stack(
+        children: [
+          // Main content
+          [const TablesScreen(), const CallsScreen(), const OrdersScreen()][_currentIndex],
+
+          // Incoming call alert overlay
+          if (calls.hasIncoming)
+            IncomingCallAlert(
+              call: calls.incomingCall!,
+              onAccept: () async {
+                final success = await calls.acceptCall(calls.incomingCall!.name);
+                if (success) {
+                  setState(() => _currentIndex = 1); // Switch to Calls tab
+                }
+              },
+              onDismiss: () => calls.dismissIncoming(),
+            ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
@@ -147,6 +234,17 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.table_restaurant_outlined),
             selectedIcon: Icon(Icons.table_restaurant),
             label: 'Tables',
+          ),
+          NavigationDestination(
+            icon: badges.Badge(
+              showBadge: calls.pendingCount > 0 || calls.activeCount > 0,
+              badgeContent: Text('${calls.pendingCount + calls.activeCount}', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+              badgeStyle: badges.BadgeStyle(badgeColor: calls.pendingCount > 0 ? Colors.orange : Colors.blue),
+              child: Icon(calls.pendingCount > 0 ? Icons.notifications_active : Icons.call_outlined,
+                color: calls.pendingCount > 0 ? Colors.orange : null),
+            ),
+            selectedIcon: const Icon(Icons.call),
+            label: calls.pendingCount > 0 ? 'NEW CALL!' : 'Calls',
           ),
           NavigationDestination(
             icon: badges.Badge(

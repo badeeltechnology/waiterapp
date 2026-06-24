@@ -261,4 +261,60 @@ class ERPNextClient {
       'status': status,
     });
   }
+
+  // ==================== Waiter Calls ====================
+
+  Future<List<Map<String, dynamic>>> getActiveCalls() async {
+    final posProfile = _requireProfile();
+    final result = await callMethod(
+      'servepos.api.waiter_call.get_active_calls',
+      args: {'pos_profile': posProfile},
+    );
+    if (result is List) return result.cast<Map<String, dynamic>>();
+    return [];
+  }
+
+  Future<Map<String, dynamic>> acceptCall(String callName, String waiterName) async {
+    final result = await callMethod(
+      'servepos.api.waiter_call.accept_waiter_call',
+      args: {'call_name': callName, 'waiter_name': waiterName},
+    );
+    return result is Map<String, dynamic> ? result : {'success': false};
+  }
+
+  Future<Map<String, dynamic>> markCallAttended(String callName, String waiterName) async {
+    final result = await callMethod(
+      'servepos.api.waiter_call.mark_call_attended',
+      args: {'call_name': callName, 'waiter_name': waiterName},
+    );
+    return result is Map<String, dynamic> ? result : {'success': false};
+  }
+
+  Future<void> registerFcmToken(String waiterName, String fcmToken) async {
+    await callMethod(
+      'servepos.api.waiter_call.register_fcm_token',
+      args: {'waiter_name': waiterName, 'fcm_token': fcmToken},
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getMyActiveCalls(String waiterName) async {
+    final result = await callMethod(
+      'servepos.api.waiter_call.get_my_active_calls',
+      args: {'waiter_name': waiterName},
+    );
+    if (result is List) return result.cast<Map<String, dynamic>>();
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getCallHistory({String? waiterName, int days = 1}) async {
+    final result = await callMethod(
+      'servepos.api.waiter_call.get_call_history',
+      args: {
+        if (waiterName != null) 'waiter_name': waiterName,
+        'days': '$days',
+      },
+    );
+    if (result is List) return result.cast<Map<String, dynamic>>();
+    return [];
+  }
 }

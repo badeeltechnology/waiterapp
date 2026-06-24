@@ -217,6 +217,64 @@ class WaiterOrder {
   );
 }
 
+class WaiterCall {
+  final String name;
+  final String table;
+  final String tableName;
+  final String posProfile;
+  final String restaurantName;
+  final String status;
+  final String? callTime;
+  final String? guestName;
+  final String? notes;
+  final String? roomName;
+  final String? acceptedBy;
+  final String? acceptedByName;
+  final String? acceptedAt;
+
+  WaiterCall({
+    required this.name,
+    required this.table,
+    required this.tableName,
+    required this.posProfile,
+    required this.restaurantName,
+    required this.status,
+    this.callTime,
+    this.guestName,
+    this.notes,
+    this.roomName,
+    this.acceptedBy,
+    this.acceptedByName,
+    this.acceptedAt,
+  });
+
+  factory WaiterCall.fromJson(Map<String, dynamic> json) => WaiterCall(
+    name: json['name'] ?? '',
+    table: json['table'] ?? '',
+    tableName: json['table_name'] ?? json['table'] ?? '',
+    posProfile: json['pos_profile'] ?? '',
+    restaurantName: json['restaurant_name'] ?? json['pos_profile'] ?? '',
+    status: json['status'] ?? 'Pending',
+    callTime: json['call_time'],
+    guestName: json['guest_name'],
+    notes: json['notes'],
+    roomName: json['room_name'],
+    acceptedBy: json['accepted_by'],
+    acceptedByName: json['accepted_by_name'],
+    acceptedAt: json['accepted_at'],
+  );
+
+  factory WaiterCall.fromFcmData(Map<String, dynamic> data) => WaiterCall(
+    name: data['call_name'] ?? '',
+    table: data['seat'] ?? '',
+    tableName: data['seat'] ?? '',
+    posProfile: data['pos_profile'] ?? '',
+    restaurantName: data['restaurant'] ?? '',
+    status: 'Pending',
+    guestName: data['guest_name'],
+  );
+}
+
 class WaiterOrderItem {
   final String itemCode;
   final String itemName;
