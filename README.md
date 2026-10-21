@@ -1,17 +1,39 @@
-# servepos_waiter
+# ServePOS Waiter
 
-A new Flutter project.
+Flutter app (Android first) for waiters of restaurants running ServePOS on ERPNext. Talks to the server contract in `WAITER_API_V2.md` (`servepos.api.mobile.*`).
 
-## Getting Started
+## Layout
 
-This project is a starting point for a Flutter application.
+```
+lib/
+  main.dart            production wiring
+  app/                 services (dependency wiring), app root + auth gate
+  core/                api client + error mapping, typed API, secure storage,
+                       models, theme (Nami), i18n (EN/AR), alerts, push, platform
+  features/
+    auth/              server URL, login, lock screen, outlet picker, SessionController
+    floor/             live floor
+    order/             take order, modifier sheet, per-table carts, outbox, menu cache
+    orders/            orders list, detail, outbox sheet
+    calls/             guest calls
+    settings/          account screen, AppSettings
+    home/              bottom navigation shell + offline/outbox banners
+  widgets/             shared UI pieces
+test/                  unit + widget tests, screenshot renderer
+```
 
-A few resources to get you started if this is your first Flutter project:
+State: `provider` with `ChangeNotifier` controllers, all built in `AppServices` (tests build it with fakes from `test/support/fakes.dart`).
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Commands
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+flutter pub get
+flutter analyze
+flutter test
+SCREENSHOT_DIR=/tmp/shots flutter test test/screenshots_test.dart   # PNGs of the main screens
+flutter build apk --release        # or: flutter build appbundle --release
+```
+
+Release signing reads `android/key.properties` (copy `android/key.properties.example`). Without it the release build is signed with the debug key and Gradle prints a warning.
+
+See `PLAY_STORE.md` for the listing, data-safety answers and release steps, and `PRIVACY.md` for the privacy policy.

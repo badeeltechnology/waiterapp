@@ -1,5 +1,5 @@
-import java.util.Properties
 import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -8,20 +8,38 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Apply Google Services plugin only if google-services.json exists
-if (file("google-services.json").exists()) {
+// Firebase (push) is optional. The google-services plugin fails the build when
+// google-services.json has no client for this applicationId, so it is applied only
+// when the file matches. Without it the app runs fine and push is simply off
+// (calls are then found by polling). See PLAY_STORE.md for the Firebase TODO.
+val appId = "com.badeel.servepos.waiter"
+val googleServices = file("google-services.json")
+if (googleServices.exists() && googleServices.readText().contains("\"$appId\"")) {
     apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.warn(
+        "WARNING: android/app/google-services.json has no Android client for $appId. " +
+            "Building WITHOUT Firebase: push notifications are disabled."
+    )
 }
 
+// Release signing: android/key.properties (never committed). See key.properties.example.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
+val hasReleaseKey = keystorePropertiesFile.exists()
+if (hasReleaseKey) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+} else {
+    logger.warn(
+        "WARNING: android/key.properties not found. The release build will be signed with the " +
+            "DEBUG key and cannot be uploaded to Google Play. Copy key.properties.example to " +
+            "key.properties and fill in the upload keystore details."
+    )
 }
 
 android {
-    namespace = "com.servepos.servepos_waiter"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "com.badeel.servepos.waiter"
+    compileSdk = maxOf(flutter.compileSdkVersion, 35)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -35,15 +53,15 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.servepos.servepos_waiter"
+        applicationId = appId
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (hasReleaseKey) {
             create("release") {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
@@ -58,7 +76,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (keystorePropertiesFile.exists()) {
+            signingConfig = if (hasReleaseKey) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")

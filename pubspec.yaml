@@ -1,26 +1,28 @@
 name: servepos_waiter
-description: "ServePOS Waiter App — Take orders from table"
+description: "ServePOS Waiter: table ordering, floor and guest calls for ServePOS restaurants."
 publish_to: 'none'
-version: 1.1.0+2
+version: 2.0.0+3
 
 environment:
-  sdk: ^3.11.3
+  sdk: ^3.11.0
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
+  flutter_localizations:
+    sdk: flutter
   provider: ^6.1.2
   http: ^1.2.2
+  intl: any
+  uuid: ^4.5.1
   shared_preferences: ^2.3.3
-  mobile_scanner: ^6.0.2
-  badges: ^3.1.2
-  intl: ^0.19.0
-  sqflite: ^2.4.1
-  path: ^1.9.0
+  flutter_secure_storage: ^9.2.4
+  local_auth: ^2.3.0
+  device_info_plus: ^11.3.0
+  package_info_plus: ^8.3.0
+  path_provider: ^2.1.5
   connectivity_plus: ^6.1.1
   flutter_local_notifications: ^18.0.1
-  audioplayers: ^6.1.0
   firebase_core: ^3.12.1
   firebase_messaging: ^15.2.4
 
@@ -32,10 +34,31 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "assets/images/app_icon.png"
-  adaptive_icon_background: "#1B5E20"
+  adaptive_icon_background: "#0B3B49"
   adaptive_icon_foreground: "assets/images/app_icon.png"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
+  fonts:
+    - family: Barlow Condensed
+      fonts:
+        - asset: assets/fonts/BarlowCondensed_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/BarlowCondensed_600SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BarlowCondensed_700Bold.ttf
+          weight: 700
+    - family: Readex Pro
+      fonts:
+        - asset: assets/fonts/ReadexPro_400Regular.ttf
+          weight: 400
+        - asset: assets/fonts/ReadexPro_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/ReadexPro_600SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/ReadexPro_700Bold.ttf
+          weight: 700
