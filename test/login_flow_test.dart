@@ -30,11 +30,24 @@ void main() {
 
     // 1. Server URL
     expect(find.text('Connect to your restaurant'), findsOneWidget);
+    // https:// is shown in front of the field, so waiters only type the address.
+    Text scheme() => tester.widget<Text>(find.byKey(const Key('server_scheme')));
+    TextField field() => tester.widget<TextField>(find.byKey(const Key('server_field')));
+    expect(scheme().data, 'https://');
+    await tester.enterText(find.byKey(const Key('server_field')), 'https://demo.myapp.qa');
+    await tester.pump();
+    expect(field().controller!.text, 'demo.myapp.qa', reason: 'a typed scheme moves into the prefix');
+    expect(scheme().data, 'https://');
     await tester.enterText(find.byKey(const Key('server_field')), 'http://demo.myapp.qa');
+    await tester.pump();
+    expect(scheme().data, 'http://');
     await tester.tap(find.byKey(const Key('server_continue')));
     await tester.pumpAndSettle();
     expect(find.textContaining('not secure'), findsOneWidget);
 
+    await tester.enterText(find.byKey(const Key('server_field')), '');
+    await tester.pump();
+    expect(scheme().data, 'https://', reason: 'clearing the field goes back to https');
     await tester.enterText(find.byKey(const Key('server_field')), 'demo.myapp.qa/app/home');
     await tester.tap(find.byKey(const Key('server_continue')));
     await tester.pumpAndSettle();

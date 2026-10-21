@@ -120,6 +120,28 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
   String? _error;
   bool _busy = false;
 
+  /// Shown as a fixed prefix, so waiters only type the address. Becomes
+  /// http:// only when someone types or pastes an http:// address (local test
+  /// servers), and goes back to https:// when the field is cleared.
+  String _scheme = 'https://';
+
+  static final _schemeRe = RegExp(r'^\s*(https?)://', caseSensitive: false);
+
+  /// Moves a typed or pasted scheme out of the text and into the prefix.
+  void _setAddress(String raw) {
+    if (raw.isEmpty) {
+      if (_scheme != 'https://') setState(() => _scheme = 'https://');
+      return;
+    }
+    final m = _schemeRe.firstMatch(raw);
+    if (m == null) return;
+    final rest = raw.substring(m.end);
+    setState(() => _scheme = '${m.group(1)!.toLowerCase()}://');
+    _ctrl.value = TextEditingValue(text: rest, selection: TextSelection.collapsed(offset: rest.length));
+  }
+
+  String get _fullUrl => '$_scheme${_ctrl.text.trim()}';
+
   @override
   void dispose() {
     _ctrl.dispose();
@@ -128,7 +150,14 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
 
   Future<void> _paste() async {
     final d = await Clipboard.getData(Clipboard.kTextPlain);
-    if (d?.text != null) setState(() => _ctrl.text = d!.text!.trim());
+    if (d?.text == null) return;
+    final text = d!.text!.trim();
+    _ctrl.text = text;
+    if (_schemeRe.hasMatch(text)) {
+      _setAddress(text);
+    } else {
+      setState(() => _scheme = 'https://');
+    }
   }
 
   Future<void> _continue({bool insecureConfirmed = false}) async {
@@ -138,7 +167,7 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
       _error = null;
     });
     try {
-      final n = await session.checkServer(_ctrl.text, insecureConfirmed: insecureConfirmed);
+      final n = await session.checkServer(_fullUrl, insecureConfirmed: insecureConfirmed);
       await session.setServer(n);
     } on ServerUrlException catch (e) {
       if (!mounted) return;
@@ -180,12 +209,24 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
           autocorrect: false,
           enableSuggestions: false,
           textInputAction: TextInputAction.go,
+          onChanged: _setAddress,
           onSubmitted: (_) => _busy ? null : _continue(),
           style: const TextStyle(fontSize: 17),
           decoration: InputDecoration(
             labelText: context.t('server_label'),
             hintText: 'demo.myapp.qa',
-            prefixIcon: const Icon(Icons.link),
+            // Always visible (prefixText would hide until the field is focused).
+            prefixIcon: Padding(
+              padding: const EdgeInsetsDirectional.only(start: 12, end: 2),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.link),
+                const SizedBox(width: 8),
+                Text(_scheme,
+                    key: const Key('server_scheme'),
+                    textDirection: TextDirection.ltr,
+                    style: TextStyle(fontSize: 17, color: Theme.of(context).hintColor)),
+              ]),
+            ),
             suffixIcon: TextButton(onPressed: _paste, child: Text(context.t('server_paste'))),
           ),
         ),
