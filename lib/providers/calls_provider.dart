@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../api/erpnext_client.dart';
 import '../models/models.dart';
 
 class CallsProvider extends ChangeNotifier {
   final _client = ERPNextClient();
+  final _audioPlayer = AudioPlayer();
   List<WaiterCall> _pendingCalls = [];
   List<WaiterCall> _myCalls = [];
   List<WaiterCall> _history = [];
@@ -37,9 +39,27 @@ class CallsProvider extends ChangeNotifier {
     if (!_pendingCalls.any((c) => c.name == call.name)) {
       _pendingCalls.insert(0, call);
     }
-    // Show as incoming alert
+    // Show as incoming alert and play sound
     _incomingCall = call;
+    _playCallSound();
     notifyListeners();
+  }
+
+  /// Play alert sound for incoming call
+  Future<void> _playCallSound() async {
+    try {
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.play(AssetSource('sounds/call_alert.mp3'));
+    } catch (e) {
+      debugPrint('Failed to play call sound: $e');
+    }
+  }
+
+  /// Stop alert sound
+  Future<void> _stopCallSound() async {
+    try {
+      await _audioPlayer.stop();
+    } catch (_) {}
   }
 
   /// Called when FCM says a call was accepted by someone else
@@ -47,6 +67,7 @@ class CallsProvider extends ChangeNotifier {
     _pendingCalls.removeWhere((c) => c.name == callName);
     if (_incomingCall?.name == callName) {
       _incomingCall = null;
+      _stopCallSound();
     }
     notifyListeners();
   }
@@ -54,6 +75,7 @@ class CallsProvider extends ChangeNotifier {
   /// Dismiss the incoming call alert without accepting
   void dismissIncoming() {
     _incomingCall = null;
+    _stopCallSound();
     notifyListeners();
   }
 
@@ -63,6 +85,7 @@ class CallsProvider extends ChangeNotifier {
     try {
       final result = await _client.acceptCall(callName, _waiterName);
       if (result['success'] == true) {
+        _stopCallSound();
         // Move from pending to my calls
         final call = _pendingCalls.firstWhere(
           (c) => c.name == callName,
@@ -182,6 +205,7 @@ class CallsProvider extends ChangeNotifier {
   @override
   void dispose() {
     stopPolling();
+    _audioPlayer.dispose();
     super.dispose();
   }
 }
