@@ -18,6 +18,9 @@ import '../features/order/outbox.dart';
 import '../features/orders/orders_controller.dart';
 import '../features/settings/app_settings.dart';
 
+/// Set by --dart-define=LOCAL_TEST=true for the office test APK (plain http to a local server).
+const bool kLocalTestBuild = bool.fromEnvironment('LOCAL_TEST');
+
 /// Everything the app needs, built once. Tests build it with fakes.
 class AppServices {
   AppServices({
@@ -40,8 +43,8 @@ class AppServices {
       settings: settings,
       biometric: biometric,
       deviceFacts: this.facts,
-      allowInsecureLocal: allowInsecureLocal ?? kDebugMode,
-      httpsOnly: httpsOnly ?? kReleaseMode,
+      allowInsecureLocal: allowInsecureLocal ?? (kDebugMode || kLocalTestBuild),
+      httpsOnly: httpsOnly ?? (kReleaseMode && !kLocalTestBuild),
     );
     menu = MenuRepository(api: api, store: json);
     floor = FloorController(api: api);

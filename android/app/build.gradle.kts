@@ -13,6 +13,11 @@ plugins {
 // when the file matches. Without it the app runs fine and push is simply off
 // (calls are then found by polling). See PLAY_STORE.md for the Firebase TODO.
 val appId = "com.badeel.servepos.waiter"
+
+// Local test build: flutter build apk --release --dart-define=LOCAL_TEST=true -PlocalTest=true
+// Installs beside the real app (".test" id, "ServePOS Waiter TEST" label) and may talk plain
+// http to a server on the office network. Never upload this build to Google Play.
+val localTest = project.hasProperty("localTest")
 val googleServices = file("google-services.json")
 if (googleServices.exists() && googleServices.readText().contains("\"$appId\"")) {
     apply(plugin = "com.google.gms.google-services")
@@ -58,6 +63,13 @@ android {
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        if (localTest) {
+            applicationIdSuffix = ".test"
+            versionNameSuffix = "-test"
+        }
+        manifestPlaceholders["appLabel"] = if (localTest) "ServePOS Waiter TEST" else "ServePOS Waiter"
+        manifestPlaceholders["netConfig"] = if (localTest) "@xml/network_security_config_local_test" else "@xml/network_security_config"
+        manifestPlaceholders["cleartext"] = if (localTest) "true" else "false"
     }
 
     signingConfigs {

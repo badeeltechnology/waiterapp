@@ -11,14 +11,14 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
 
     <application
-        android:label="ServePOS Waiter"
+        android:label="${appLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:networkSecurityConfig="@xml/network_security_config"
-        android:usesCleartextTraffic="false"
+        android:networkSecurityConfig="${netConfig}"
+        android:usesCleartextTraffic="${cleartext}"
         tools:replace="android:allowBackup">
         <activity
             android:name=".MainActivity"

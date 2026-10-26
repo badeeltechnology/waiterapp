@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LOCAL TEST BUILD ONLY (-PlocalTest=true): allows plain http to a test server on the
+     office network. The Play Store build uses network_security_config.xml (https only). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
