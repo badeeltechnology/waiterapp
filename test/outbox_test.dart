@@ -144,7 +144,7 @@ void main() {
       ]);
     });
 
-    test('refused at once: the lines go back to the draft', () async {
+    test('refused at once: kept as Not sent (Retry with the same id), Edit puts the lines back in the draft', () async {
       final carts = CartStore();
       final o = make();
       final s = OrderSender(carts: carts, outbox: o, newId: () => 'REQ-2');
@@ -154,6 +154,10 @@ void main() {
       script = [const ServerException('Table is closed', statusCode: 417)];
       final r = await s.send(target: t, posProfile: 'P', user: 'ahmed@example.com');
       expect(r, isA<RefusedOutcome>());
+      expect(o.count, 1);
+      expect(o.entries.single.failed, isTrue);
+      expect(carts.cartFor(t.key).itemCount, 0, reason: 'the draft is not silently refilled (that invited a second Send with a new id)');
+      await s.returnToDraft('REQ-2');
       expect(o.count, 0);
       expect(carts.cartFor(t.key).itemCount, 1);
       expect(carts.cartFor(t.key).guests, 3);

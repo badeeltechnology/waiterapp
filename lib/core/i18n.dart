@@ -14,12 +14,12 @@ const Map<String, Map<String, String>> _strings = {
   'server_unreachable': {'en': 'Could not reach a ServePOS server at this address.', 'ar': 'تعذر الوصول إلى خادم ServePOS على هذا العنوان.'},
   'server_http_public': {
     'en': 'This address is not secure (http). Ask your manager for the https address.',
-    'ar': 'هذا العنوان غير آمن (http). اطلب من المدير عنوان https.'
+    'ar': 'هذا العنوان غير آمن (http). اطلب من المدير عنوان https.',
   },
   'server_http_local_title': {'en': 'Insecure local server', 'ar': 'خادم محلي غير آمن'},
   'server_http_local_body': {
     'en': 'This server uses plain http on a local network. Passwords and orders are sent unencrypted. Only continue on a trusted test network.',
-    'ar': 'يستخدم هذا الخادم http على شبكة محلية. ستُرسل كلمات المرور والطلبات بدون تشفير. تابع فقط على شبكة اختبار موثوقة.'
+    'ar': 'يستخدم هذا الخادم http على شبكة محلية. ستُرسل كلمات المرور والطلبات بدون تشفير. تابع فقط على شبكة اختبار موثوقة.',
   },
   'server_http_local_ok': {'en': 'I understand, continue', 'ar': 'أفهم ذلك، تابع'},
   'cancel': {'en': 'Cancel', 'ar': 'إلغاء'},
@@ -29,12 +29,15 @@ const Map<String, Map<String, String>> _strings = {
   'login_password': {'en': 'Password', 'ar': 'كلمة المرور'},
   'login_button': {'en': 'Sign in', 'ar': 'دخول'},
   'login_change_server': {'en': 'Change server', 'ar': 'تغيير الخادم'},
-  'login_help': {'en': 'Your manager creates your account. Ask them if you forgot your password.', 'ar': 'المدير ينشئ حسابك. اسأله إذا نسيت كلمة المرور.'},
+  'login_help': {
+    'en': 'Your manager creates your account. Ask them if you forgot your password.',
+    'ar': 'المدير ينشئ حسابك. اسأله إذا نسيت كلمة المرور.',
+  },
   'session_ended': {'en': 'Your session ended. Please sign in again.', 'ar': 'انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.'},
   'bio_offer_title': {'en': 'Use fingerprint to unlock next time?', 'ar': 'استخدام البصمة لفتح التطبيق في المرة القادمة؟'},
   'bio_offer_body': {
     'en': 'You will not need your password again on this phone until you sign out.',
-    'ar': 'لن تحتاج إلى كلمة المرور مجدداً على هذا الهاتف حتى تسجل الخروج.'
+    'ar': 'لن تحتاج إلى كلمة المرور مجدداً على هذا الهاتف حتى تسجل الخروج.',
   },
   'bio_offer_yes': {'en': 'Use fingerprint', 'ar': 'استخدم البصمة'},
   'bio_offer_no': {'en': 'Not now', 'ar': 'ليس الآن'},
@@ -77,11 +80,20 @@ const Map<String, Map<String, String>> _strings = {
   'order_review': {'en': 'Review', 'ar': 'مراجعة'},
   'order_items': {'en': '{n} items', 'ar': '{n} أصناف'},
   'order_unavailable': {'en': 'Not available', 'ar': 'غير متوفر'},
-  'order_menu_missing': {'en': 'Menu not loaded yet. Connect to the server once to download it.', 'ar': 'لم يتم تحميل القائمة. اتصل بالخادم مرة لتنزيلها.'},
-  'order_mods_missing': {'en': 'Options for this item are not downloaded. Refresh the menu online first.', 'ar': 'خيارات هذا الصنف غير محملة. حدّث القائمة أولاً.'},
+  'order_menu_missing': {
+    'en': 'Menu not loaded yet. Connect to the server once to download it.',
+    'ar': 'لم يتم تحميل القائمة. اتصل بالخادم مرة لتنزيلها.',
+  },
+  'order_mods_missing': {
+    'en': 'Options for this item are not downloaded. Refresh the menu online first.',
+    'ar': 'خيارات هذا الصنف غير محملة. حدّث القائمة أولاً.',
+  },
   'order_sending': {'en': 'Sending…', 'ar': 'جارٍ الإرسال…'},
   'order_sent_ok': {'en': 'Sent to the till: {name}', 'ar': 'أُرسل إلى الكاشير: {name}'},
-  'order_queued': {'en': 'No connection. Order saved on this phone and NOT sent yet. It will send automatically.', 'ar': 'لا يوجد اتصال. حُفظ الطلب على الهاتف ولم يُرسل بعد. سيُرسل تلقائياً.'},
+  'order_queued': {
+    'en': 'No connection. Order saved on this phone and NOT sent yet. It will send automatically.',
+    'ar': 'لا يوجد اتصال. حُفظ الطلب على الهاتف ولم يُرسل بعد. سيُرسل تلقائياً.',
+  },
   'order_clear': {'en': 'Clear draft', 'ar': 'مسح المسودة'},
   'order_clear_q': {'en': 'Remove all new items for this table?', 'ar': 'حذف كل الأصناف الجديدة لهذه الطاولة؟'},
   'order_waiting_here': {'en': 'Waiting to send for this table: {n}', 'ar': 'بانتظار الإرسال لهذه الطاولة: {n}'},
@@ -117,7 +129,7 @@ const Map<String, Map<String, String>> _strings = {
   'order_add_more': {'en': 'Add items', 'ar': 'أضف أصنافاً'},
   'order_guests_n': {'en': '{n} guests', 'ar': '{n} ضيوف'},
   'takeaway': {'en': 'Takeaway', 'ar': 'سفري'},
-  'status_pending': {'en': 'Pending', 'ar': 'قيد الانتظار'},
+  'status_pending': {'en': 'Sent', 'ar': 'أُرسل'},
   'status_accepted': {'en': 'Accepted', 'ar': 'مقبول'},
   'status_inKitchen': {'en': 'In Kitchen', 'ar': 'في المطبخ'},
   'status_ready': {'en': 'Ready', 'ar': 'جاهز'},
@@ -166,10 +178,74 @@ const Map<String, Map<String, String>> _strings = {
   'acc_push_off': {'en': 'Push alerts off', 'ar': 'تنبيهات الدفع متوقفة'},
   'acc_push_off_sub': {
     'en': 'This build has no push setup. Guest calls are checked every 10 seconds only while the app is open.',
-    'ar': 'هذا الإصدار بدون إعداد تنبيهات الدفع. يتم فحص نداءات الضيوف كل 10 ثوانٍ فقط أثناء فتح التطبيق.'
+    'ar': 'هذا الإصدار بدون إعداد تنبيهات الدفع. يتم فحص نداءات الضيوف كل 10 ثوانٍ فقط أثناء فتح التطبيق.',
   },
+  // Sending
+  'ok': {'en': 'OK', 'ar': 'حسناً'},
+  'send_sending_title': {'en': 'Sending to the till…', 'ar': 'جارٍ الإرسال إلى الكاشير…'},
+  'send_sending_body': {
+    'en': 'You can leave this screen. It keeps sending and will never be sent twice.',
+    'ar': 'يمكنك مغادرة هذه الشاشة. سيستمر الإرسال ولن يُرسل الطلب مرتين أبداً.',
+  },
+  'send_ok_title': {'en': 'Sent to the till', 'ar': 'أُرسل إلى الكاشير'},
+  'send_ok_round': {'en': 'Added to the order', 'ar': 'أُضيف إلى الطلب'},
+  'send_meta': {'en': '{table} · {n} items · {t}', 'ar': '{table} · {n} أصناف · {t}'},
+  'send_find': {'en': 'See it in Orders', 'ar': 'اعرضه في الطلبات'},
+  'send_queued_title': {'en': 'Not sent yet', 'ar': 'لم يُرسل بعد'},
+  'send_queued_body': {
+    'en': 'No connection. The order is saved on this phone and will send by itself. Do not enter it again.',
+    'ar': 'لا يوجد اتصال. الطلب محفوظ على هذا الهاتف وسيُرسل تلقائياً. لا تُدخله مرة أخرى.',
+  },
+  'send_timeout_title': {'en': 'No answer from the till yet', 'ar': 'لا رد من الكاشير بعد'},
+  'send_timeout_body': {
+    'en': 'It may already be there. The app checks again with the same order code, so it can never arrive twice. Do not enter it again.',
+    'ar': 'ربما وصل بالفعل. سيعيد التطبيق المحاولة بنفس رمز الطلب، لذلك لن يصل مرتين أبداً. لا تُدخله مرة أخرى.',
+  },
+  'send_round_wait_title': {'en': 'Saved, waits for round 1', 'ar': 'محفوظ، بانتظار الدفعة الأولى'},
+  'send_round_wait_body': {
+    'en': 'This round is added to the table\'s first order as soon as that order is confirmed.',
+    'ar': 'ستُضاف هذه الدفعة إلى الطلب الأول للطاولة فور تأكيده.',
+  },
+  'send_failed_title': {'en': 'Not sent: the till refused it', 'ar': 'لم يُرسل: رفضه الكاشير'},
+  'send_failed_body': {
+    'en': 'Nothing reached the kitchen. Fix the order and send again.',
+    'ar': 'لم يصل شيء إلى المطبخ. صحّح الطلب وأرسله مرة أخرى.',
+  },
+  'send_retry': {'en': 'Try again now', 'ar': 'حاول الآن'},
+  'send_keep': {'en': 'Keep for later', 'ar': 'احتفظ به لاحقاً'},
+  'send_edit': {'en': 'Edit order', 'ar': 'تعديل الطلب'},
+  'dup_title': {'en': 'Send again?', 'ar': 'إرسال مرة أخرى؟'},
+  'dup_sent': {'en': 'You sent the same items to {table} {n} min ago ({order}).', 'ar': 'أرسلت نفس الأصناف إلى {table} قبل {n} د ({order}).'},
+  'dup_sent_now': {'en': 'You just sent the same items to {table} ({order}).', 'ar': 'أرسلت للتو نفس الأصناف إلى {table} ({order}).'},
+  'dup_unsent': {
+    'en': 'The same items for {table} are already saved on this phone and are being sent.',
+    'ar': 'نفس الأصناف لـ {table} محفوظة على هذا الهاتف وجارٍ إرسالها.',
+  },
+  'dup_hint': {'en': 'Only send again if the guest really ordered them twice.', 'ar': 'أرسل مرة أخرى فقط إذا طلبها الضيف فعلاً مرتين.'},
+  'dup_send': {'en': 'Send again', 'ar': 'أرسل مرة أخرى'},
+  'dup_cancel': {'en': 'Don\'t send', 'ar': 'لا ترسل'},
+  'toast_sent_bg': {'en': '{table}: sent to the till', 'ar': '{table}: أُرسل إلى الكاشير'},
+  'toast_accepted': {'en': '{table}: accepted at the till', 'ar': '{table}: قبله الكاشير'},
+  'toast_ready': {'en': '{table} is ready to serve', 'ar': '{table} جاهز للتقديم'},
+  'toast_rejected': {'en': '{table}: rejected at the till', 'ar': '{table}: رفضه الكاشير'},
+  'status_sending': {'en': 'Sending…', 'ar': 'جارٍ الإرسال…'},
+  'status_sent_at': {'en': 'Sent {t}', 'ar': 'أُرسل {t}'},
+  'outbox_section': {'en': 'On this phone, not confirmed yet', 'ar': 'على هذا الهاتف، لم يُؤكَّد بعد'},
+  'outbox_saved': {'en': 'Saved {t}', 'ar': 'حُفظ {t}'},
+  'outbox_next': {'en': 'next try {t}', 'ar': 'المحاولة التالية {t}'},
+  'outbox_tries': {'en': '{n} tries', 'ar': '{n} محاولات'},
+  'outbox_wait_round': {'en': 'Waits for round 1', 'ar': 'بانتظار الدفعة 1'},
+  'outbox_maybe': {'en': 'No answer yet, may already be at the till', 'ar': 'لا رد بعد، ربما وصل إلى الكاشير'},
+  'floor_find': {'en': 'Find table', 'ar': 'ابحث عن طاولة'},
+  'floor_find_hint': {'en': 'Table, e.g. B20B', 'ar': 'الطاولة، مثلاً B20B'},
+  'floor_find_none': {'en': 'No table matches', 'ar': 'لا توجد طاولة مطابقة'},
+  'call_banner': {'en': '{table} is calling', 'ar': '{table} يطلب نادلاً'},
+  'call_banner_more': {'en': '+{n} more', 'ar': '+{n} آخرون'},
   'error_generic': {'en': 'Something went wrong. Try again.', 'ar': 'حدث خطأ. حاول مرة أخرى.'},
 };
+
+/// Wraps a left-to-right value (table code, time) so it keeps its place in an Arabic sentence.
+String isolate(String s) => '\u2068$s\u2069';
 
 String tr(String lang, String key, [Map<String, Object?> args = const {}]) {
   final entry = _strings[key];

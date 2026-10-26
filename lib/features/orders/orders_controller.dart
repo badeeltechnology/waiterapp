@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../core/alerts.dart';
@@ -19,6 +21,27 @@ class OrdersController extends ChangeNotifier {
   ApiException? error;
   DateTime? updatedAt;
   OrderStatus? filter;
+
+  /// Called when an order of this list changes to Accepted, Ready or Rejected
+  /// (found by polling or push).
+  void Function(Order order, OrderStatus from)? onStatusChange;
+  Timer? _timer;
+  Duration _every = const Duration(seconds: 15);
+
+  /// Safety net for status changes when push is late or off (this build has no
+  /// push). Push triggers refresh() too.
+  void startPolling({Duration every = const Duration(seconds: 15)}) {
+    _every = every;
+    _timer?.cancel();
+    _timer = Timer.periodic(every, (_) => refresh());
+  }
+
+  void resumePolling() => startPolling(every: _every);
+
+  void stopPolling() {
+    _timer?.cancel();
+    _timer = null;
+  }
 
   /// Orders that turned Ready since the waiter last looked.
   final Set<String> readyUnseen = {};
@@ -77,14 +100,16 @@ class OrdersController extends ChangeNotifier {
         readyUnseen.add(o.name);
         // Push normally announces this; polling is the safety net (deduped).
         if (!first) {
-          alerts.showOrder(
-            id: 'order_ready:${o.name}',
-            title: o.table == null ? '${o.name} is ready' : 'Table ${o.table} is ready',
-            body: o.name,
-          );
+          alerts.showOrder(id: 'order_ready:${o.name}', title: o.table == null ? '${o.name} is ready' : 'Table ${o.table} is ready', body: o.name);
         }
       }
       if (o.status != OrderStatus.ready) readyUnseen.remove(o.name);
+      if (!first &&
+          prev != null &&
+          prev != o.status &&
+          (o.status == OrderStatus.accepted || o.status == OrderStatus.ready || o.status == OrderStatus.rejected)) {
+        onStatusChange?.call(o, prev);
+      }
       _lastStatus[o.name] = o.status;
     }
   }
@@ -116,11 +141,18 @@ class OrdersController extends ChangeNotifier {
   }
 
   void clear() {
+    stopPolling();
     profile = null;
     orders = const [];
     _lastStatus.clear();
     readyUnseen.clear();
     error = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    stopPolling();
+    super.dispose();
   }
 }

@@ -8,6 +8,7 @@ import 'package:servepos_waiter/core/models/session.dart';
 import 'package:servepos_waiter/core/platform.dart';
 import 'package:servepos_waiter/core/push.dart';
 import 'package:servepos_waiter/core/storage.dart';
+import 'package:servepos_waiter/features/order/send_controller.dart';
 
 class FakeBiometric implements BiometricGate {
   FakeBiometric({this.available = true, this.succeed = true});
@@ -294,6 +295,7 @@ AppServices fakeServices({
   MemoryStore? prefs,
   FakeBiometric? biometric,
   Alerts? alerts,
+  SendFeedback? feedback,
 }) {
   final s = secure ?? MemoryStore();
   return AppServices(
@@ -306,6 +308,7 @@ AppServices fakeServices({
     push: NoopPush(),
     net: NetStatus(listenToDevice: false),
     facts: FakeDeviceFacts(s),
+    feedback: feedback ?? RecordingFeedback(),
     allowInsecureLocal: false,
     httpsOnly: false,
   );

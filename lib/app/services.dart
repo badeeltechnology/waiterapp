@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../core/alerts.dart';
 import '../core/api/api_client.dart';
 import '../core/api/waiter_api.dart';
+import '../core/models/order.dart';
 import '../core/platform.dart';
 import '../core/push.dart';
 import '../core/storage.dart';
@@ -15,6 +16,8 @@ import '../features/order/cart.dart';
 import '../features/order/menu_repository.dart';
 import '../features/order/order_sender.dart';
 import '../features/order/outbox.dart';
+import '../features/order/send_controller.dart';
+import 'notices.dart';
 import '../features/orders/orders_controller.dart';
 import '../features/settings/app_settings.dart';
 
@@ -33,6 +36,7 @@ class AppServices {
     required this.push,
     required this.net,
     DeviceFactsProvider? facts,
+    SendFeedback? feedback,
     bool? allowInsecureLocal,
     bool? httpsOnly,
   }) : facts = facts ?? DeviceFactsProvider(secure) {
@@ -53,6 +57,8 @@ class AppServices {
     carts = CartStore(store: json);
     outbox = Outbox(sender: OrderSender.senderFor(api), store: json);
     sender = OrderSender(carts: carts, outbox: outbox);
+    sending = SendController(sender: sender, outbox: outbox, feedback: feedback);
+    notices = Notices();
     _wire();
   }
 
@@ -75,6 +81,8 @@ class AppServices {
   late final CartStore carts;
   late final Outbox outbox;
   late final OrderSender sender;
+  late final SendController sending;
+  late final Notices notices;
   final List<StreamSubscription<Object?>> _subs = [];
 
   static Future<AppServices> production() async {
@@ -101,17 +109,21 @@ class AppServices {
       final user = session.user!;
       outbox.currentUser = user.user;
       await outbox.dropOthers(user.user);
+      sender.reconcile();
       outbox.start();
       unawaited(outbox.flush(force: true));
       unawaited(menu.open(profile));
       floor.open(profile);
       orders.open(profile);
+      orders.startPolling();
       calls.open(profile, user.waiter);
       final facts = await this.facts.facts();
       unawaited(push.register(api, facts.platform));
     });
     session.onSignedOut.add(({required bool wipe}) async {
       outbox.stop();
+      sending.clear();
+      notices.clear();
       calls.clear();
       floor.clear();
       orders.clear();
@@ -131,7 +143,22 @@ class AppServices {
     };
     outbox.onSent = (entry, order) {
       orders.upsert(order);
+      floor.markOrder(order);
       floor.refresh();
+      sending.onOutboxSent(entry, order);
+    };
+    orders.onStatusChange = (order, from) {
+      floor.refresh(); // the table tile shows the new status at once
+      final where = order.isTakeaway ? 'Takeaway ${order.name}' : (order.table ?? order.name);
+      switch (order.status) {
+        case OrderStatus.accepted:
+          notices.show(Notice(kind: NoticeKind.accepted, title: where, order: order.name));
+        case OrderStatus.ready:
+          notices.show(Notice(kind: NoticeKind.ready, title: where, order: order.name));
+        case OrderStatus.rejected:
+          notices.show(Notice(kind: NoticeKind.rejected, title: where, order: order.name));
+        default:
+      }
     };
     _subs.add(push.messages.listen(_onPush));
   }

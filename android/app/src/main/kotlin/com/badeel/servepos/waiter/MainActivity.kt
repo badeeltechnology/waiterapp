@@ -1,5 +1,9 @@
 package com.badeel.servepos.waiter
 
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Handler
+import android.os.Looper
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -25,6 +29,27 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                     else -> result.notImplemented()
                 }
+            }
+        // Short confirmation tones after Send (sent / saved for later / refused).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "servepos/feedback")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "tone") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val tone = when (call.argument<String>("kind")) {
+                    "ok" -> ToneGenerator.TONE_PROP_ACK
+                    "error" -> ToneGenerator.TONE_PROP_NACK
+                    else -> ToneGenerator.TONE_PROP_PROMPT
+                }
+                try {
+                    val gen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90)
+                    gen.startTone(tone, 300)
+                    Handler(Looper.getMainLooper()).postDelayed({ gen.release() }, 600)
+                } catch (e: RuntimeException) {
+                    // No audio resources: haptics still fire on the Dart side.
+                }
+                result.success(null)
             }
     }
 }

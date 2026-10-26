@@ -71,6 +71,33 @@ class FloorController extends ChangeNotifier {
     if (_visible) setVisible(true, every: _every);
   }
 
+  /// Shows a just-confirmed order on its table at once (the next refresh
+  /// brings the server's view).
+  void markOrder(Order o) {
+    final t = o.table;
+    if (t == null) return;
+    final summary = TableOrderSummary(
+      order: o.name,
+      waiter: o.waiter,
+      guests: o.guests,
+      since: o.created,
+      total: o.total,
+      itemsCount: o.itemCount.round(),
+      status: o.status,
+    );
+    final existing = live(t);
+    final row = TableLive(
+      name: t,
+      tableName: existing?.tableName ?? t,
+      room: existing?.room ?? o.room,
+      capacity: existing?.capacity ?? 0,
+      state: TableState.occupied,
+      order: summary,
+    );
+    tables = existing == null ? [...tables, row] : [for (final x in tables) x.name == t ? row : x];
+    notifyListeners();
+  }
+
   TableLive? live(String table) => tables.where((t) => t.name == table).firstOrNull;
 
   /// Merges the floor plan from the menu cache with live status, so the floor
@@ -80,8 +107,7 @@ class FloorController extends ChangeNotifier {
     final byName = {for (final t in tables) t.name: t};
     final out = <TableLive>[
       for (final d in plan)
-        byName[d.name] ??
-            TableLive(name: d.name, tableName: d.tableName, room: d.room, capacity: d.capacity, state: TableState.available),
+        byName[d.name] ?? TableLive(name: d.name, tableName: d.tableName, room: d.room, capacity: d.capacity, state: TableState.available),
     ];
     // Tables the server knows but the cached plan does not (plan out of date).
     for (final t in tables) {

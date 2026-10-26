@@ -18,7 +18,13 @@ import '../features/order/order_sender.dart';
 import '../features/order/outbox.dart';
 import '../features/orders/orders_controller.dart';
 import '../features/settings/app_settings.dart';
+import '../features/order/send_controller.dart';
+import 'nav.dart';
+import 'notices.dart';
+import 'overlay_host.dart';
 import 'services.dart';
+
+export 'nav.dart' show rootNavigatorKey;
 
 class WaiterApp extends StatelessWidget {
   const WaiterApp({super.key, required this.services});
@@ -44,6 +50,8 @@ class WaiterApp extends StatelessWidget {
         ChangeNotifierProvider<CallsController>.value(value: s.calls),
         ChangeNotifierProvider<CartStore>.value(value: s.carts),
         ChangeNotifierProvider<Outbox>.value(value: s.outbox),
+        ChangeNotifierProvider<SendController>.value(value: s.sending),
+        ChangeNotifierProvider<Notices>.value(value: s.notices),
       ],
       child: Consumer<AppSettings>(
         builder: (context, settings, _) => MaterialApp(
@@ -58,14 +66,13 @@ class WaiterApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           navigatorKey: rootNavigatorKey,
+          builder: (context, child) => OverlayHost(child: child ?? const SizedBox.shrink()),
           home: const RootGate(),
         ),
       ),
     );
   }
 }
-
-final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Shows the screen for the current auth stage and handles idle lock.
 class RootGate extends StatefulWidget {
@@ -95,6 +102,7 @@ class _RootGateState extends State<RootGate> {
     s.session.markBackground();
     s.floor.pause();
     s.calls.stopPolling();
+    s.orders.stopPolling();
   }
 
   void _onShow() {
@@ -103,6 +111,7 @@ class _RootGateState extends State<RootGate> {
     if (s.session.stage == AuthStage.ready) {
       s.floor.resume();
       s.calls.startPolling();
+      s.orders.resumePolling();
       s.floor.refresh();
       s.calls.refresh();
       s.orders.refresh();
@@ -136,7 +145,7 @@ class _Splash extends StatelessWidget {
   const _Splash({super.key});
   @override
   Widget build(BuildContext context) => const Scaffold(
-        backgroundColor: Nami.deep,
-        body: Center(child: CircularProgressIndicator(color: Nami.amber)),
-      );
+    backgroundColor: Nami.deep,
+    body: Center(child: CircularProgressIndicator(color: Nami.amber)),
+  );
 }

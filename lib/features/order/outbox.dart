@@ -29,6 +29,9 @@ class OutboxEntry {
     this.nextAttemptAt,
     this.lastError,
     this.failed = false,
+    this.dependsOn,
+    this.room,
+    this.lastAttemptAt,
   });
 
   final String id;
@@ -52,39 +55,59 @@ class OutboxEntry {
   /// The server refused it (validation). Needs the waiter: retry, discard or edit.
   bool failed;
 
+  /// A later round for a table whose first order is still unconfirmed: it is
+  /// sent as add_items once that entry has an order number, never as a second order.
+  String? dependsOn;
+  final String? room;
+  DateTime? lastAttemptAt;
+
+  /// The phone gave up waiting for an answer: the server may already have it.
+  bool get maybeArrived => lastError == const TimeoutApiException().message;
+
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'kind': kind.name,
-        'payload': payload,
-        'user': user,
-        'label': label,
-        'cart_key': cartKey,
-        'total': total,
-        'item_count': itemCount,
-        'lines': lines,
-        'created_at': createdAt.toIso8601String(),
-        'attempts': attempts,
-        'next_attempt_at': nextAttemptAt?.toIso8601String(),
-        'last_error': lastError,
-        'failed': failed,
-      };
+    'id': id,
+    'kind': kind.name,
+    'payload': payload,
+    'user': user,
+    'label': label,
+    'cart_key': cartKey,
+    'total': total,
+    'item_count': itemCount,
+    'lines': lines,
+    'created_at': createdAt.toIso8601String(),
+    'attempts': attempts,
+    'next_attempt_at': nextAttemptAt?.toIso8601String(),
+    'last_error': lastError,
+    'failed': failed,
+    'depends_on': dependsOn,
+    'room': room,
+    'last_attempt_at': lastAttemptAt?.toIso8601String(),
+  };
 
   factory OutboxEntry.fromJson(Map<String, dynamic> j) => OutboxEntry(
-        id: '${j['id']}',
-        kind: OutboxKind.values.firstWhere((k) => k.name == j['kind'], orElse: () => OutboxKind.create),
-        payload: Map<String, dynamic>.from(j['payload'] as Map),
-        user: '${j['user'] ?? ''}',
-        label: '${j['label'] ?? ''}',
-        cartKey: '${j['cart_key'] ?? ''}',
-        total: (j['total'] as num?)?.toDouble() ?? 0,
-        itemCount: (j['item_count'] as num?)?.toInt() ?? 0,
-        lines: [for (final l in (j['lines'] as List? ?? const [])) Map<String, dynamic>.from(l as Map)],
-        createdAt: DateTime.tryParse('${j['created_at']}') ?? DateTime.now(),
-        attempts: (j['attempts'] as num?)?.toInt() ?? 0,
-        nextAttemptAt: j['next_attempt_at'] == null ? null : DateTime.tryParse('${j['next_attempt_at']}'),
-        lastError: j['last_error'] as String?,
-        failed: j['failed'] == true,
-      );
+    id: '${j['id']}',
+    kind: OutboxKind.values.firstWhere((k) => k.name == j['kind'], orElse: () => OutboxKind.create),
+    payload: Map<String, dynamic>.from(j['payload'] as Map),
+    user: '${j['user'] ?? ''}',
+    label: '${j['label'] ?? ''}',
+    cartKey: '${j['cart_key'] ?? ''}',
+    total: (j['total'] as num?)?.toDouble() ?? 0,
+    itemCount: (j['item_count'] as num?)?.toInt() ?? 0,
+    lines: [for (final l in (j['lines'] as List? ?? const [])) Map<String, dynamic>.from(l as Map)],
+    createdAt: DateTime.tryParse('${j['created_at']}') ?? DateTime.now(),
+    attempts: (j['attempts'] as num?)?.toInt() ?? 0,
+    nextAttemptAt: j['next_attempt_at'] == null ? null : DateTime.tryParse('${j['next_attempt_at']}'),
+    lastError: j['last_error'] as String?,
+    failed: j['failed'] == true,
+    dependsOn: j['depends_on'] as String?,
+    room: j['room'] as String?,
+    lastAttemptAt: j['last_attempt_at'] == null ? null : DateTime.tryParse('${j['last_attempt_at']}'),
+  );
+}
+
+/// A later round is held until the table's first order is confirmed.
+class WaitingForFirstRound extends NetworkException {
+  const WaitingForFirstRound() : super('Waiting for the first round of this table to be confirmed.');
 }
 
 sealed class SendOutcome {
@@ -118,8 +141,8 @@ class Outbox extends ChangeNotifier {
     DateTime Function()? clock,
     this.baseDelay = const Duration(seconds: 5),
     this.maxDelay = const Duration(minutes: 2),
-  })  : _store = store,
-        _clock = clock ?? DateTime.now;
+  }) : _store = store,
+       _clock = clock ?? DateTime.now;
 
   final OutboxSender sender;
   final JsonStore? _store;
@@ -128,7 +151,7 @@ class Outbox extends ChangeNotifier {
   final Duration maxDelay;
 
   final List<OutboxEntry> _entries = [];
-  final Set<String> _inFlight = {};
+  final Map<String, Future<SendOutcome>> _inFlight = {};
   Timer? _timer;
   bool _flushing = false;
 
@@ -139,11 +162,18 @@ class Outbox extends ChangeNotifier {
   void Function(OutboxEntry entry, Order order)? onSent;
 
   List<OutboxEntry> get entries => List.unmodifiable(_entries.where((e) => e.user == currentUser));
-  int get waitingCount => entries.where((e) => !e.failed).length;
+  int get waitingCount => entries.where((e) => !e.failed && !isSending(e.id)).length;
+  int get sendingCount => entries.where((e) => isSending(e.id)).length;
   int get failedCount => entries.where((e) => e.failed).length;
   int get count => entries.length;
   List<OutboxEntry> forCart(String key) => entries.where((e) => e.cartKey == key).toList();
-  bool isSending(String id) => _inFlight.contains(id);
+  bool isSending(String id) => _inFlight.containsKey(id);
+  bool get isAnySending => _inFlight.isNotEmpty;
+  OutboxEntry? byId(String id) => _entries.where((e) => e.id == id).firstOrNull;
+
+  /// The unconfirmed first order of a table, if any (a new round must wait for it).
+  OutboxEntry? pendingCreateFor(String cartKey) =>
+      entries.where((e) => e.cartKey == cartKey && e.kind == OutboxKind.create && !cartKey.startsWith('takeaway')).lastOrNull;
 
   Duration backoffFor(int attempts) {
     if (attempts <= 0) return Duration.zero;
@@ -180,18 +210,47 @@ class Outbox extends ChangeNotifier {
     return entry;
   }
 
-  /// Sends one entry now.
-  Future<SendOutcome> send(String id) async {
+  /// Sends one entry now. A second call while the first is on the wire joins
+  /// it (same request, same answer) instead of sending again.
+  Future<SendOutcome> send(String id) {
+    final running = _inFlight[id];
+    if (running != null) return running;
     final entry = _entries.where((e) => e.id == id).firstOrNull;
     if (entry == null) throw StateError('No outbox entry $id');
-    if (_inFlight.contains(id)) {
-      return QueuedOutcome(const NetworkException('Already sending.'));
-    }
-    _inFlight.add(id);
+    // Registered before _send can finish (it may complete without awaiting),
+    // and cleared only by the run that registered it.
+    late final Future<SendOutcome> f;
+    f = _send(entry).whenComplete(() {
+      if (identical(_inFlight[id], f)) {
+        _inFlight.remove(id);
+        notifyListeners();
+      }
+    });
+    _inFlight[id] = f;
     notifyListeners();
+    return f;
+  }
+
+  Future<SendOutcome> _send(OutboxEntry entry) async {
+    final id = entry.id;
     try {
+      // A later round waits for the table's first order to get its number.
+      final parentId = entry.dependsOn;
+      if (parentId != null && entry.payload['order'] == null) {
+        final parentRun = _inFlight[parentId];
+        if (parentRun != null) await parentRun;
+        if (entry.payload['order'] == null) {
+          if (_entries.any((e) => e.id == parentId)) {
+            return const QueuedOutcome(WaitingForFirstRound());
+          }
+          // Parent gone without an order number (discarded): send as its own order.
+          entry.dependsOn = null;
+        }
+      }
+      entry.lastAttemptAt = _clock();
       final order = await sender(entry);
       _entries.removeWhere((e) => e.id == id);
+      _resolveDependents(id, order.name);
       await _persist();
       onSent?.call(entry, order);
       return SentOutcome(order);
@@ -218,9 +277,15 @@ class Outbox extends ChangeNotifier {
       entry.nextAttemptAt = _clock().add(backoffFor(entry.attempts));
       await _persist();
       return QueuedOutcome(const BadResponseException());
-    } finally {
-      _inFlight.remove(id);
-      notifyListeners();
+    }
+  }
+
+  /// The first order of a table got its number: later rounds become add_items to it.
+  void _resolveDependents(String parentId, String orderName) {
+    for (final d in _entries.where((e) => e.dependsOn == parentId)) {
+      d.payload['order'] = orderName;
+      d.dependsOn = null;
+      d.nextAttemptAt = null;
     }
   }
 
@@ -231,12 +296,13 @@ class Outbox extends ChangeNotifier {
     _flushing = true;
     try {
       final now = _clock();
-      final due = entries
-          .where((e) => !e.failed && (force || e.nextAttemptAt == null || !e.nextAttemptAt!.isAfter(now)))
-          .toList()
+      final due = entries.where((e) => !e.failed && (force || e.nextAttemptAt == null || !e.nextAttemptAt!.isAfter(now))).toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       for (final e in due) {
+        // It may have been sent or discarded while we were busy with another one.
+        if (!_entries.any((x) => x.id == e.id)) continue;
         final r = await send(e.id);
+        if (r is QueuedOutcome && r.error is WaitingForFirstRound) continue;
         if (r is QueuedOutcome && (r.error is NetworkException || r.error is TimeoutApiException || r.error is SessionExpiredException)) {
           break;
         }

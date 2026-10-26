@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../app/nav.dart';
 import '../../core/alerts.dart';
 import '../../core/i18n.dart';
 import '../../core/platform.dart';
@@ -34,16 +35,24 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      currentHomeTab.value = _tab; // not during build: the overlay listens to it
       _syncFloorTimer();
       _maybeOfferBiometric();
     });
     final alerts = context.read<Alerts>();
     _tapSub = alerts.taps.listen((t) => _go(t == AlertTarget.calls ? 2 : 1));
+    homeTabRequest.addListener(_onTabRequest);
+  }
+
+  void _onTabRequest() {
+    final t = homeTabRequest.value;
+    if (t != null) _go(t);
   }
 
   @override
   void dispose() {
     _tapSub?.cancel();
+    homeTabRequest.removeListener(_onTabRequest);
     super.dispose();
   }
 
@@ -51,6 +60,7 @@ class _HomeShellState extends State<HomeShell> {
     if (!mounted) return;
     Navigator.of(context).popUntil((r) => r.isFirst);
     setState(() => _tab = i);
+    currentHomeTab.value = i;
     _syncFloorTimer();
   }
 
@@ -84,32 +94,50 @@ class _HomeShellState extends State<HomeShell> {
         if (!didPop) _go(0); // back from Orders/Calls/Account goes to Floor, not out of the app
       },
       child: Scaffold(
-        body: Column(children: [
-          const _StatusBanners(),
-          Expanded(
-            child: MediaQuery.removePadding(
-              context: context,
-              removeTop: _StatusBanners.isVisible(context),
-              child: IndexedStack(
-                index: _tab,
-                children: const [FloorScreen(), OrdersScreen(), CallsScreen(), SettingsScreen()],
+        body: Column(
+          children: [
+            const _StatusBanners(),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: _StatusBanners.isVisible(context),
+                child: IndexedStack(index: _tab, children: const [FloorScreen(), OrdersScreen(), CallsScreen(), SettingsScreen()]),
               ),
             ),
-          ),
-        ]),
+          ],
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
           onDestinationSelected: _go,
           destinations: [
-            NavigationDestination(icon: const Icon(Icons.table_restaurant_outlined), selectedIcon: const Icon(Icons.table_restaurant), label: context.t('nav_floor')),
             NavigationDestination(
-              icon: Badge(isLabelVisible: orders.readyUnseen.isNotEmpty, label: Text('${orders.readyUnseen.length}'), backgroundColor: Nami.green, child: const Icon(Icons.receipt_long_outlined)),
+              icon: const Icon(Icons.table_restaurant_outlined),
+              selectedIcon: const Icon(Icons.table_restaurant),
+              label: context.t('nav_floor'),
+            ),
+            NavigationDestination(
+              icon: Badge(
+                isLabelVisible: orders.readyUnseen.isNotEmpty,
+                label: Text('${orders.readyUnseen.length}'),
+                backgroundColor: Nami.green,
+                child: const Icon(Icons.receipt_long_outlined),
+              ),
               selectedIcon: const Icon(Icons.receipt_long),
               label: context.t('nav_orders'),
             ),
             NavigationDestination(
-              icon: Badge(isLabelVisible: calls.waitingCount > 0, label: Text('${calls.waitingCount}'), backgroundColor: Nami.red, child: const Icon(Icons.notifications_active_outlined)),
-              selectedIcon: Badge(isLabelVisible: calls.waitingCount > 0, label: Text('${calls.waitingCount}'), backgroundColor: Nami.red, child: const Icon(Icons.notifications_active)),
+              icon: Badge(
+                isLabelVisible: calls.waitingCount > 0,
+                label: Text('${calls.waitingCount}'),
+                backgroundColor: Nami.red,
+                child: const Icon(Icons.notifications_active_outlined),
+              ),
+              selectedIcon: Badge(
+                isLabelVisible: calls.waitingCount > 0,
+                label: Text('${calls.waitingCount}'),
+                backgroundColor: Nami.red,
+                child: const Icon(Icons.notifications_active),
+              ),
               label: context.t('nav_calls'),
             ),
             NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person), label: context.t('nav_account')),
@@ -145,6 +173,14 @@ class _StatusBanners extends StatelessWidget {
           icon: Icons.error_outline,
           onTap: () => showOutboxSheet(context),
         ),
+      if (outbox.sendingCount > 0 && outbox.waitingCount == 0 && outbox.failedCount == 0)
+        StatusStrip(
+          key: const Key('outbox_sending_strip'),
+          text: '${context.t('status_sending')} (${outbox.sendingCount})',
+          color: Nami.rail,
+          icon: Icons.send,
+          onTap: () => showOutboxSheet(context),
+        ),
       if (outbox.waitingCount > 0)
         StatusStrip(
           key: const Key('outbox_waiting_strip'),
@@ -159,7 +195,11 @@ class _StatusBanners extends StatelessWidget {
     return Container(
       color: strips.length == 1 && !net.online ? Nami.ink : Nami.deep,
       padding: EdgeInsets.only(top: top),
-      child: MediaQuery.removePadding(context: context, removeTop: true, child: Column(children: strips)),
+      child: MediaQuery.removePadding(
+        context: context,
+        removeTop: true,
+        child: Column(children: strips),
+      ),
     );
   }
 }
