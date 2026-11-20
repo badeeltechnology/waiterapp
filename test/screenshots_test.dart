@@ -72,7 +72,7 @@ AppServices _readyServices({String language = 'en'}) {
   return fakeServices(
     api: api,
     secure: MemoryStore({
-      SecureKeys.server: 'https://demo.myapp.qa',
+      SecureKeys.server: 'https://erp.example.com',
       SecureKeys.token: 'tok',
       SecureKeys.session: jsonEncode(loginJson(profiles: ['Cocktail Bar', 'Beach Grill'])..remove('token')),
     }),
@@ -112,7 +112,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2340);
     tester.view.devicePixelRatio = 3;
     final s = fakeServices(
-      secure: MemoryStore({SecureKeys.server: 'https://demo.myapp.qa'}),
+      secure: MemoryStore({SecureKeys.server: 'https://erp.example.com'}),
       prefs: MemoryStore({'last_username': 'ahmed@example.com'}),
     );
     await tester.runAsync(() async {

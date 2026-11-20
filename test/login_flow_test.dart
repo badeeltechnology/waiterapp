@@ -34,11 +34,11 @@ void main() {
     Text scheme() => tester.widget<Text>(find.byKey(const Key('server_scheme')));
     TextField field() => tester.widget<TextField>(find.byKey(const Key('server_field')));
     expect(scheme().data, 'https://');
-    await tester.enterText(find.byKey(const Key('server_field')), 'https://demo.myapp.qa');
+    await tester.enterText(find.byKey(const Key('server_field')), 'https://erp.example.com');
     await tester.pump();
-    expect(field().controller!.text, 'demo.myapp.qa', reason: 'a typed scheme moves into the prefix');
+    expect(field().controller!.text, 'erp.example.com', reason: 'a typed scheme moves into the prefix');
     expect(scheme().data, 'https://');
-    await tester.enterText(find.byKey(const Key('server_field')), 'http://demo.myapp.qa');
+    await tester.enterText(find.byKey(const Key('server_field')), 'http://erp.example.com');
     await tester.pump();
     expect(scheme().data, 'http://');
     await tester.tap(find.byKey(const Key('server_continue')));
@@ -48,14 +48,14 @@ void main() {
     await tester.enterText(find.byKey(const Key('server_field')), '');
     await tester.pump();
     expect(scheme().data, 'https://', reason: 'clearing the field goes back to https');
-    await tester.enterText(find.byKey(const Key('server_field')), 'demo.myapp.qa/app/home');
+    await tester.enterText(find.byKey(const Key('server_field')), 'erp.example.com/app/home');
     await tester.tap(find.byKey(const Key('server_continue')));
     await tester.pumpAndSettle();
-    expect(s.session.serverUrl, 'https://demo.myapp.qa');
+    expect(s.session.serverUrl, 'https://erp.example.com');
 
     // 2. Password: wrong first.
     expect(find.byKey(const Key('login_user')), findsOneWidget);
-    expect(find.text('demo.myapp.qa'), findsOneWidget);
+    expect(find.text('erp.example.com'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('login_user')), 'ahmed@example.com');
     await tester.enterText(find.byKey(const Key('login_password')), 'wrong');
     await tester.tap(find.byKey(const Key('login_submit')));
@@ -101,7 +101,7 @@ void main() {
 
   testWidgets('lock screen: fallback to password', (tester) async {
     final secure = MemoryStore({
-      SecureKeys.server: 'https://demo.myapp.qa',
+      SecureKeys.server: 'https://erp.example.com',
       SecureKeys.token: 'old',
       SecureKeys.session: '{"user":{"user":"ahmed@example.com","full_name":"Ahmed Khalil","waiter":"Ahmed"},"pos_profiles":[{"name":"Cocktail Bar"}]}',
     });

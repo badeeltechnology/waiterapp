@@ -36,10 +36,10 @@ Map<String, dynamic> loginJson({List<String> profiles = const ['Cocktail Bar'], 
       'expires_on': '2026-11-20 10:00:00',
       'user': {'user': 'ahmed@example.com', 'full_name': 'Ahmed Khalil', 'waiter': 'Ahmed', 'image': null},
       'pos_profiles': [
-        for (final p in profiles) {'name': p, 'restaurant_name': p.toUpperCase(), 'branch': 'Beach Club', 'currency': 'QAR'},
+        for (final p in profiles) {'name': p, 'restaurant_name': p.toUpperCase(), 'branch': 'Seafront', 'currency': 'QAR'},
       ],
       'default_pos_profile': profiles.first,
-      'server': {'site': 'demo.myapp.qa', 'servepos_version': '2.0.0', 'time': ago(0)},
+      'server': {'site': 'erp.example.com', 'servepos_version': '2.0.0', 'time': ago(0)},
     };
 
 MenuData sampleMenu() => MenuData.fromJson({

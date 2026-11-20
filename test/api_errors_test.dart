@@ -137,7 +137,7 @@ void main() {
     test('401 anywhere wipes the token and returns to login with a message', () async {
       final api = FakeWaiterApi();
       final secure = MemoryStore({
-        SecureKeys.server: 'https://demo.myapp.qa',
+        SecureKeys.server: 'https://erp.example.com',
         SecureKeys.token: 'tok-1',
         SecureKeys.session: jsonEncode(loginJson()..remove('token')),
       });
@@ -153,7 +153,7 @@ void main() {
       expect(await secure.read(SecureKeys.token), isNull);
       expect(api.token, isNull);
       // Server URL and device id survive.
-      expect(await secure.read(SecureKeys.server), 'https://demo.myapp.qa');
+      expect(await secure.read(SecureKeys.server), 'https://erp.example.com');
     });
   });
 }

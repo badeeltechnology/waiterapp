@@ -560,7 +560,7 @@ Future<Harness> boot(WidgetTester tester, {String language = 'en', ScenarioApi? 
     api: a,
     alerts: RecordingAlerts(),
     secure: MemoryStore({
-      SecureKeys.server: 'https://demo.myapp.qa',
+      SecureKeys.server: 'https://erp.example.com',
       SecureKeys.token: 'tok',
       SecureKeys.session: jsonEncode(loginJson()..remove('token')),
     }),

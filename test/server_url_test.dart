@@ -6,20 +6,20 @@ void main() {
     String n(String s) => normalizeServerUrl(s).url;
 
     test('adds https when no scheme', () {
-      expect(n('demo.myapp.qa'), 'https://demo.myapp.qa');
+      expect(n('erp.example.com'), 'https://erp.example.com');
     });
 
     test('strips trailing slashes, whitespace and quotes', () {
-      expect(n('  https://demo.myapp.qa/// '), 'https://demo.myapp.qa');
-      expect(n('"demo.myapp.qa"'), 'https://demo.myapp.qa');
+      expect(n('  https://erp.example.com/// '), 'https://erp.example.com');
+      expect(n('"erp.example.com"'), 'https://erp.example.com');
     });
 
     test('strips desk paths, query and fragment', () {
-      expect(n('https://demo.myapp.qa/app/pos-invoice/new?x=1#y'), 'https://demo.myapp.qa');
-      expect(n('https://demo.myapp.qa/desk#List/Item'), 'https://demo.myapp.qa');
-      expect(n('demo.myapp.qa/app'), 'https://demo.myapp.qa');
-      expect(n('https://demo.myapp.qa/login'), 'https://demo.myapp.qa');
-      expect(n('https://demo.myapp.qa/api/method/frappe.ping'), 'https://demo.myapp.qa');
+      expect(n('https://erp.example.com/app/pos-invoice/new?x=1#y'), 'https://erp.example.com');
+      expect(n('https://erp.example.com/desk#List/Item'), 'https://erp.example.com');
+      expect(n('erp.example.com/app'), 'https://erp.example.com');
+      expect(n('https://erp.example.com/login'), 'https://erp.example.com');
+      expect(n('https://erp.example.com/api/method/frappe.ping'), 'https://erp.example.com');
     });
 
     test('keeps a sub-path site and port', () {
@@ -27,7 +27,7 @@ void main() {
     });
 
     test('lowercases scheme and host', () {
-      expect(n('HTTPS://Demo.MyApp.QA'), 'https://demo.myapp.qa');
+      expect(n('HTTPS://ERP.Example.COM'), 'https://erp.example.com');
     });
 
     test('classifies security', () {

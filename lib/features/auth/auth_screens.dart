@@ -214,7 +214,7 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
           style: const TextStyle(fontSize: 17),
           decoration: InputDecoration(
             labelText: context.t('server_label'),
-            hintText: 'demo.myapp.qa',
+            hintText: 'erp.example.com',
             // Always visible (prefixText would hide until the field is focused).
             prefixIcon: Padding(
               padding: const EdgeInsetsDirectional.only(start: 12, end: 2),

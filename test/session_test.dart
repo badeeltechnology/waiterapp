@@ -26,10 +26,10 @@ void main() {
     final api = FakeWaiterApi();
     final s = fakeServices(api: api);
     await s.init();
-    final n = await s.session.checkServer('demo.myapp.qa/app/home');
-    expect(n.url, 'https://demo.myapp.qa');
-    expect(api.calls, contains('ping https://demo.myapp.qa'));
-    expect(() => s.session.checkServer('http://demo.myapp.qa'), throwsA(isA<ServerUrlException>().having((e) => e.message, 'm', 'http_public')));
+    final n = await s.session.checkServer('erp.example.com/app/home');
+    expect(n.url, 'https://erp.example.com');
+    expect(api.calls, contains('ping https://erp.example.com'));
+    expect(() => s.session.checkServer('http://erp.example.com'), throwsA(isA<ServerUrlException>().having((e) => e.message, 'm', 'http_public')));
     expect(() => s.session.checkServer('http://192.168.1.5:8000'), throwsA(isA<ServerUrlException>().having((e) => e.message, 'm', 'http_local')));
     expect((await s.session.checkServer('http://192.168.1.5:8000', insecureConfirmed: true)).url, 'http://192.168.1.5:8000');
     api.pingOk = false;
@@ -41,7 +41,7 @@ void main() {
     final secure = MemoryStore();
     final s = fakeServices(api: api, secure: secure);
     await s.init();
-    await s.session.setServer(normalizeServerUrl('https://demo.myapp.qa'));
+    await s.session.setServer(normalizeServerUrl('https://erp.example.com'));
     await expectLater(s.session.login('ahmed@example.com', 'wrong'), throwsA(isA<LoginRejectedException>()));
     await s.session.login('ahmed@example.com', 'secret');
     expect(s.session.stage, AuthStage.ready, reason: 'single profile is picked automatically');
@@ -59,7 +59,7 @@ void main() {
     final prefs = MemoryStore();
     final s = fakeServices(api: api, secure: secure, prefs: prefs);
     await s.init();
-    await s.session.setServer(normalizeServerUrl('demo.myapp.qa'));
+    await s.session.setServer(normalizeServerUrl('erp.example.com'));
     await s.session.login('ahmed@example.com', 'secret');
     expect(s.session.stage, AuthStage.needProfile);
     await s.session.chooseProfile(s.session.session!.profiles[1]);
@@ -78,7 +78,7 @@ void main() {
     final api = FakeWaiterApi();
     final bio = FakeBiometric(succeed: false);
     final secure = MemoryStore({
-      SecureKeys.server: 'https://demo.myapp.qa',
+      SecureKeys.server: 'https://erp.example.com',
       SecureKeys.token: 'old-token',
       SecureKeys.session: jsonEncode(loginJson()..remove('token')),
     });
@@ -101,7 +101,7 @@ void main() {
   test('biometric unlock succeeds', () async {
     final s = fakeServices(
       secure: MemoryStore({
-        SecureKeys.server: 'https://demo.myapp.qa',
+        SecureKeys.server: 'https://erp.example.com',
         SecureKeys.token: 't',
         SecureKeys.session: jsonEncode(loginJson()..remove('token')),
       }),
@@ -117,7 +117,7 @@ void main() {
     var now = DateTime(2026, 10, 21, 12);
     final api = FakeWaiterApi();
     final secure = MemoryStore({
-      SecureKeys.server: 'https://demo.myapp.qa',
+      SecureKeys.server: 'https://erp.example.com',
       SecureKeys.token: 't',
       SecureKeys.session: jsonEncode(loginJson()..remove('token')),
     });
@@ -149,7 +149,7 @@ void main() {
     final secure = MemoryStore();
     final s = fakeServices(api: api, secure: secure);
     await s.init();
-    await s.session.setServer(normalizeServerUrl('demo.myapp.qa'));
+    await s.session.setServer(normalizeServerUrl('erp.example.com'));
     await s.session.login('ahmed@example.com', 'secret');
     await s.settings.setBiometric(true);
     s.carts.setGuests('table:T1', 2);
@@ -167,7 +167,7 @@ void main() {
     final s = fakeServices(
       api: api,
       secure: MemoryStore({
-        SecureKeys.server: 'https://demo.myapp.qa',
+        SecureKeys.server: 'https://erp.example.com',
         SecureKeys.token: 't',
         SecureKeys.session: jsonEncode(loginJson()..remove('token')),
       }),
