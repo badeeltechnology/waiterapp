@@ -6,14 +6,14 @@ The old sideloaded app (`com.servepos.servepos_waiter`) was never on Play. The n
 
 ## TODO before push notifications work (Firebase)
 
-The committed `android/app/google-services.json` only has a client for the OLD package. Until it is replaced, the build skips the google-services plugin (Gradle prints a warning), the app runs fully without Firebase, and Account > Notifications shows "Push alerts off" (guest calls are then polled every 10 s while the app is open, nothing rings when it is closed).
+`android/app/google-services.json` is not in git: download it from your Firebase project and put it there. Without it, or if it has no client for this package, the build skips the google-services plugin (Gradle prints a warning), the app runs fully without Firebase, and Account > Notifications shows "Push alerts off" (guest calls are then polled every 10 s while the app is open, nothing rings when it is closed).
 
 1. Firebase console, project `servepos-ad41b` > Project settings > Add app > Android, package `com.badeel.servepos.waiter`, nickname "ServePOS Waiter 2".
 2. Register SHA-1 and SHA-256 of the **upload key**: `keytool -list -v -keystore android/app/upload-keystore.jks -alias upload` Current upload key:
    - SHA-1 `55:A2:0A:7A:F6:3A:13:DF:0A:71:E6:A3:C7:D7:22:AE:6E:29:3F:21`
    - SHA-256 `21:59:22:96:01:F0:1B:AD:F1:E8:F5:E7:BA:54:47:08:36:71:99:83:E3:83:99:14:F9:6B:3A:C0:63:8E:10:8E`
 3. After the first upload to Play with App Signing on, copy the SHA-1/SHA-256 of the **app signing key** from Play Console > Test and release > App integrity and add them to the same Firebase app.
-4. Download the new `google-services.json` (it will contain both old and new clients) and replace `android/app/google-services.json`. Rebuild: the Gradle warning disappears and Account shows "Push alerts on".
+4. Download the new `google-services.json` (it will contain both old and new clients) and save it as `android/app/google-services.json` (git ignores it). Rebuild: the Gradle warning disappears and Account shows "Push alerts on".
 5. On the server, make sure the FCM credentials used by `servepos` belong to project `servepos-ad41b`.
 
 
