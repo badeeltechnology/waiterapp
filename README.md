@@ -37,3 +37,7 @@ flutter build apk --release        # or: flutter build appbundle --release
 Release signing reads `android/key.properties` (copy `android/key.properties.example`). Without it the release build is signed with the debug key and Gradle prints a warning.
 
 See `PLAY_STORE.md` for the listing, data-safety answers and release steps, and `PRIVACY.md` for the privacy policy.
+
+## Licence
+
+GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
