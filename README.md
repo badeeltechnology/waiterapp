@@ -2,6 +2,12 @@
 
 Flutter app (Android first) for waiters of restaurants running ServePOS on ERPNext. Talks to the server contract in `WAITER_API_V2.md` (`servepos.api.mobile.*`).
 
+## Download
+
+[**Download the APK for Android**](https://github.com/badeeltechnology/waiterapp/releases/latest/download/ServePOS-Waiter.apk) (Android 7 or later)
+
+On the phone, open the file and allow installing from this source when Android asks. Sign in with the server address, username and password a manager creates in the Serve POS manager app (**Waiters** › **Create login**). The desktop POS for the counter is in the [Serve POS Desktop](https://github.com/badeeltechnology/servepos-desktop#download) repository.
+
 ## Layout
 
 ```
